@@ -1,0 +1,11 @@
+nltk              # For natural language processing
+spacy             # Advanced NLP library
+transformers      # Hugging Face models for text generation
+gTTS              # Google Text-to-Speech for speech synthesis
+pydub             # Audio file manipulation
+librosa           # Audio processing and analysis
+torch             # PyTorch for machine learning
+tensorflow        # TensorFlow for machine learning
+scikit-learn      # Machine learning utilities
+requests          # For API calls
+pandas            # Data manipulation

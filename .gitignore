@@ -1,0 +1,7 @@
+venv/
+node_modules/
+*.log
+dist/
+build/
+.DS_Store # macOS-specific
+package-lock.json # Optional if using Yarn
