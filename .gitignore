@@ -1,7 +1,15 @@
+uploads/
+outputs/
+
+.DS_Store
 venv/
 node_modules/
 *.log
 dist/
 build/
-.DS_Store # macOS-specific
-package-lock.json # Optional if using Yarn
+.idea/
+*.swp
+*.swo
+__pycache__/
+.env
+package-lock.json

@@ -1,161 +1,105 @@
-process.env.ELECTRON_DISABLE_SECURITY_WARNINGS = 'true'; // Only for development
-
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
-const path = require('path');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron')
+const path = require('path')
+const axios = require('axios')
+const FormData = require('form-data')
 const fs = require('fs');
-const axios = require('axios');
-const FormData = require('form-data');
 
-let mainWindow;
-const API_URL = 'http://localhost:5001';
+const API_URL = 'http://localhost:5001'
+let mainWindow
 
-// Create the main application window
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
-      // Improved security settings
       nodeIntegration: false,
       contextIsolation: true,
-      sandbox: true,  // Add sandbox
-      enableRemoteModule: false  // Disable remote
+      sandbox: true
     }
-  });
+  })
 
-  mainWindow.loadFile(path.join(__dirname, 'index.html'));
-  
-  // Optionally open DevTools during development
-  // mainWindow.webContents.openDevTools();
-  mainWindow.on('closed',()=> { mainWindow=null; })
+  mainWindow.loadFile(path.join(__dirname, 'index.html'))
+  // mainWindow.webContents.openDevTools() // Dev tools for debugging
 }
 
-// Handle PDF file uploads with promise-based IPC
-ipcMain.handle('upload-pdf', async (event, filePath) => {
+// File Operations
+ipcMain.handle('files:upload', async (_, filePath) => {
   try {
-    console.log(`Processing PDF: ${filePath}`);
-    
-    // Create a form data object for the file
     const form = new FormData();
-    const fileStream = fs.createReadStream(filePath);
-    form.append('file', fileStream);
+    form.append('file', fs.createReadStream(filePath));
     
-    // Send to Flask backend
-    const response = await axios.post(`${API_URL}/upload`, form, {
+    const response = await axios.post(`${API_URL}/api/upload`, form, {
       headers: {
-        ...form.getHeaders()
+        ...form.getHeaders(),
+        'Content-Type': 'multipart/form-data'
       }
     });
     
     return response.data;
   } catch (error) {
-    console.error('Upload error:', error);
-    throw new Error(error.response?.data?.message || 'Upload failed');
+    console.error('Upload error details:', error);
+    throw new Error(error.response?.data?.error || 'File upload failed');
   }
 });
 
-ipcMain.handle('select-pdf-file', async () => {
+ipcMain.handle('files:select', async () => {
   const { filePaths } = await dialog.showOpenDialog({
     properties: ['openFile'],
-    filters: [
-      { name: 'PDF Files', extensions: ['pdf'] }
-    ]
-  });
-  return filePaths[0]; // Return first selected file path
-});
+    filters: [{ name: 'PDF Files', extensions: ['pdf'] }]
+  })
+  return filePaths[0] || null
+})
 
-ipcMain.handle('visualize-pdf', async (event, filePath) => {
+ipcMain.handle('files:analyze', async (_, fileId) => {
   try {
-    const response = await axios.post(`${API_URL}/visualize`, { filePath });
-    return response.data;
+    const response = await axios.get(`${API_URL}/api/analyze/${fileId}`)
+    return response.data
   } catch (error) {
-    console.error('Visualization error:', error);
-    throw new Error(error.response?.data?.message || 'Visualization failed');
+    console.error('Analysis error:', error)
+    throw new Error(error.response?.data?.error || 'Analysis failed')
   }
-});
+})
 
-// Handle document analysis
-ipcMain.handle('analyze-pdf', async (event, fileId) => {
+// Podcast Generation
+ipcMain.handle('podcast:generate', async (_, config) => {
   try {
-    const response = await axios.get(`${API_URL}/analyze/${fileId}`);
-    return response.data;
+    const response = await axios.post(`${API_URL}/api/generate`, config)
+    return response.data
   } catch (error) {
-    console.error('Analysis error:', error);
-    throw new Error(error.response?.data?.message || 'Analysis failed');
+    console.error('Generation error:', error)
+    throw new Error(error.response?.data?.error || 'Generation failed')
   }
-});
+})
 
-// Handle podcast generation
-ipcMain.handle('generate-podcast', async (event, config) => {
+ipcMain.handle('jobs:status', async (_, jobId) => {
   try {
-    console.log('Generating podcast with config:', config);
-    const response = await axios.post(`${API_URL}/generate`, config);
-    return response.data;
+    const response = await axios.get(`${API_URL}/api/status/${jobId}`)
+    return response.data
   } catch (error) {
-    console.error('Generation error:', error);
-    throw new Error(error.response?.data?.message || 'Generation failed');
+    console.error('Status error:', error)
+    throw new Error(error.response?.data?.error || 'Status check failed')
   }
-});
-
-// Check job status
-ipcMain.handle('job-status', async (event, jobId) => {
-  try {
-    const response = await axios.get(`${API_URL}/status/${jobId}`);
-    return response.data;
-  } catch (error) {
-    console.error('Status check error:', error);
-    throw new Error(error.response?.data?.message || 'Status check failed');
-  }
-});
-
-// Handle podcast download
-ipcMain.handle('download-podcast', async (event, jobId) => {
-  try {
-    // Get the podcast URL from the server
-    const response = await axios.get(`${API_URL}/download/${jobId}`);
-    const audioUrl = response.data.url;
-    
-    // Ask user where to save the file
-    const { filePath } = await dialog.showSaveDialog({
-      buttonLabel: 'Save Podcast',
-      defaultPath: path.join(app.getPath('downloads'), `podcast-${jobId}.mp3`),
-      filters: [
-        { name: 'Audio Files', extensions: ['mp3'] }
-      ]
-    });
-    
-    if (filePath) {
-      // Download the file
-      const writer = fs.createWriteStream(filePath);
-      const audioResponse = await axios({
-        url: audioUrl,
-        method: 'GET',
-        responseType: 'stream'
-      });
-      
-      audioResponse.data.pipe(writer);
-      
-      return new Promise((resolve, reject) => {
-        writer.on('finish', () => resolve(filePath));
-        writer.on('error', reject);
-      });
-    }
-    return null;
-  } catch (error) {
-    console.error('Download error:', error);
-    throw new Error(error.response?.data?.message || 'Download failed');
-  }
-});
+})
 
 app.whenReady().then(() => {
-  createWindow();
+  createWindow()
   
-  app.on('activate', function () {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
-  });
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) createWindow()
+  })
+})
+
+ipcMain.handle('podcast:download', async (_, jobId) => {
+  try {
+      const response = await axios.get(`${API_URL}/api/download/${jobId}`);
+      return response.data.url;
+  } catch (error) {
+      console.error('Download error:', error);
+      throw new Error(error.response?.data?.error || 'Download failed');
+  }
 });
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
-});
+  if (process.platform !== 'darwin') app.quit()
+})

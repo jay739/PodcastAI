@@ -167,3 +167,11 @@ select:focus, input[type="text"]:focus {
         padding: 16px;
     }
 }
+
+#customize-voices-btn {
+    transition: all 0.3s ease;
+  }
+  #customize-voices-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }

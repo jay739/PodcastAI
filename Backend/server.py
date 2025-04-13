@@ -1,117 +1,97 @@
-from flask import Flask, request, send_file, jsonify
-import os
+from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
+import os
 import uuid
 from werkzeug.utils import secure_filename
-from pydantic import BaseModel
-from typing import Optional
-import datetime
-
-class GenerationConfig(BaseModel):
-    voice: str
-    speed: Optional[float] = 1.0
-    tone: Optional[str] = "neutral"
+from pdf_processor import analyze_pdf
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
 CORS(app)
+app.config['UPLOAD_FOLDER'] = 'uploads'
+app.config['OUTPUT_FOLDER'] = 'outputs'
 
-# Upload route
-@app.route('/upload', methods=['POST'])
-def upload():
+# Ensure directories exist
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+os.makedirs(app.config['OUTPUT_FOLDER'], exist_ok=True)
+
+@app.route('/api/upload', methods=['POST'])
+def upload_file():
+    if 'file' not in request.files:
+        return jsonify({"error": "No file provided"}), 400
+    
     file = request.files['file']
-    if not file.filename.endswith('.pdf'):
+    if not file.filename.lower().endswith('.pdf'):
         return jsonify({"error": "Only PDF files are allowed"}), 400
-    # Secure the filename
+    
     file_id = str(uuid.uuid4())
     filename = secure_filename(f"{file_id}.pdf")
-    file.save(os.path.join("uploads", filename))
-    return jsonify({"fileId": file_id})
-
-# Analyze route
-@app.route('/analyze/<fileId>', methods=['GET'])
-def analyze(fileId):
-    # Validate fileId format
-    try:
-        uuid.UUID(fileId)
-    except ValueError:
-        return jsonify({"error": "Invalid file ID format"}), 400
-
-    file_path = os.path.join("uploads", f"{fileId}.pdf")
-    if not os.path.exists(file_path):
-        return jsonify({"error": "File not found"}), 404
-
-    try:
-        # Here you would call your pdf_processor functions
-        result = {
-            "status": "analyzed", 
-            "fileId": fileId,
-            "metadata": {},  # Add actual metadata
-            "text": ""       # Add extracted text
-        }
-        return jsonify(result)
-    except Exception as e:
-        app.logger.error(f"Analysis error for {fileId}: {str(e)}")
-        return jsonify({"error": "Analysis failed"}), 500
-    
-# Generate podcast route
-@app.route('/generate', methods=['POST'])
-def generate():
-    try:
-        config = GenerationConfig(**request.json)
-    except ValueError as e:
-        return jsonify({"error": str(e)}), 400
-        
-    job_id = str(uuid.uuid4())
-    # Store the config with the job_id for later processing
-    return jsonify({"jobId": job_id})
-
-# Job status route
-@app.route('/status/<jobId>', methods=['GET'])
-def status(jobId):
-    # Simulate checking job status
-    status = {"status": "completed", "jobId": jobId}
-    return jsonify(status)
-
-# Download podcast route
-@app.route('/download/<jobId>', methods=['GET'])
-def download(jobId):
-    try:
-        uuid.UUID(jobId)
-    except ValueError:
-        return jsonify({"error": "Invalid job ID"}), 400
-
-    audio_path = os.path.join("outputs", f"podcast-{jobId}.mp3")
-    
-    if not os.path.exists(audio_path):
-        # Instead of creating dummy file, return "processing" status
-        return jsonify({
-            "status": "processing",
-            "message": "Your podcast is being generated",
-            "estimatedWait": 300  # seconds
-        }), 202
+    file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
     
     return jsonify({
-        "url": f"/static/{jobId}.mp3",
-        "expires": (datetime.datetime.now() + datetime.timedelta(days=1)).isoformat()
+        "success": True,
+        "fileId": file_id,
+        "filename": filename
     })
 
-# Serve audio file
-@app.route('/static/<jobId>.mp3')
-def serve_audio(jobId):
-    audio_path = f"outputs/podcast-{jobId}.mp3"
-    if not os.path.exists(audio_path):
+@app.route('/api/analyze/<file_id>', methods=['GET'])
+def analyze_file(file_id):
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{file_id}.pdf")
+    if not os.path.exists(file_path):
         return jsonify({"error": "File not found"}), 404
-    return send_file(audio_path, mimetype='audio/mpeg')
+    
+    try:
+        analysis = analyze_pdf(file_path)
+        return jsonify({
+            "success": True,
+            "analysis": analysis
+        })
+    except Exception as e:
+        return jsonify({
+            "error": str(e),
+            "fileId": file_id
+        }), 500
 
-# Default home route
-@app.route('/')
-def home():
-    return "Welcome to the Podcast Generator API!"
+@app.route('/api/generate', methods=['POST'])
+def generate_podcast():
+    data = request.json
+    if not data or 'fileId' not in data:
+        return jsonify({"error": "Invalid request"}), 400
+    
+    job_id = str(uuid.uuid4())
+    # In a real app, you would queue this for processing
+    return jsonify({
+        "success": True,
+        "jobId": job_id,
+        "status": "queued"
+    })
+
+@app.route('/api/status/<job_id>', methods=['GET'])
+def get_status(job_id):
+    # Mock status response
+    return jsonify({
+        "jobId": job_id,
+        "status": "completed",
+        "progress": 100,
+        "resultUrl": f"/api/download/{job_id}"
+    })
+
+@app.route('/api/download/<job_id>', methods=['GET'])
+def download_podcast(job_id):
+    # In a real app, you would serve the generated file
+    return jsonify({
+        "url": f"/api/audio/{job_id}.mp3",
+        "expires": (datetime.now() + timedelta(days=1)).isoformat()
+    })
+
+@app.route('/api/audio/<filename>', methods=['GET'])
+def serve_audio(filename):
+    # Mock audio response
+    return send_file(
+        "sample.mp3",  # Replace with actual file path
+        mimetype='audio/mpeg',
+        as_attachment=False
+    )
 
 if __name__ == '__main__':
-    # Ensure directories exist
-    os.makedirs('uploads', exist_ok=True)
-    os.makedirs('outputs', exist_ok=True)
-
-    # Start the Flask app
-    app.run(host='0.0.0.0',port=5001,debug=True)
+    app.run(host='0.0.0.0', port=5001, debug=True)
