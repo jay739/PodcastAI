@@ -82,6 +82,15 @@ ipcMain.handle('jobs:status', async (_, jobId) => {
   }
 })
 
+ipcMain.handle('check-server', async () => {
+  try {
+    await axios.get(`${API_URL}/api/status/ping`);
+    return true;
+  } catch {
+    return false;
+  }
+});
+
 app.whenReady().then(() => {
   createWindow()
   
@@ -93,7 +102,10 @@ app.whenReady().then(() => {
 ipcMain.handle('podcast:download', async (_, jobId) => {
   try {
       const response = await axios.get(`${API_URL}/api/download/${jobId}`);
-      return response.data.url;
+      return {
+          url: response.data.url,
+          fileId: jobId  
+      };
   } catch (error) {
       console.error('Download error:', error);
       throw new Error(error.response?.data?.error || 'Download failed');

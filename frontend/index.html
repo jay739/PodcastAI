@@ -84,10 +84,14 @@
                     <div id="speakers-list" class="mb-6">
                         <p class="text-gray-600">Analyzing document...</p>
                     </div>
-
-                    <button id="customize-voices-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded transition-colors">
-                        Customize Voices
-                    </button>
+                    <div class="flex space-x-4 mt-6">
+                        <button onclick="showUploadSection()" class="border border-gray-300 text-gray-700 font-medium py-2 px-4 rounded transition-colors hover:bg-gray-100">
+                            Back to Upload
+                        </button>
+                        <button id="customize-voices-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded transition-colors">
+                            Customize Voices
+                        </button>
+                    </div>
                 </div>
             </section>
 
@@ -323,7 +327,7 @@
                 });
                 
                 const config = {
-                    file_id: fileId,
+                    fileId: fileId,
                     voice_settings: voiceSettings,
                     background_music: document.getElementById('background-music').checked
                 };
@@ -339,8 +343,9 @@
 
         async function monitorJobStatus() {
             try {
+                console.log('Checking job status for', jobId);
                 const status = await window.podcastAPI.jobs.getStatus(jobId);
-                
+                console.log('Job status response:', status);
                 if (status.status === 'completed') {
                     showResultSection(status.resultUrl);
                 } else if (status.status === 'failed') {
@@ -365,24 +370,48 @@
 
         // UI Functions (keep your existing implementations)
         function displayAnalysisResults(analysis) {
-            pageCount.textContent = analysis.page_count || 0;;
-            wordCount.textContent = analysis.word_count || 0;;
-            speakerCount.textContent = analysis.speakers?.length || 0;;
-            
-            speakers = analysis.speakers;
-            speakersList.innerHTML = speakers.length > 0 
-                ? speakers.map(speaker => `
-                    <div class="py-1">
-                        <span class="font-medium">${speaker.name}</span>
-                        <span class="text-gray-500 text-sm ml-2">(${speaker.frequency} mentions)</span>
-                    </div>`
-                    ).join('')
-                    : '<p class="text-gray-600">No speakers detected</p>';
-  
-            // Show the analysis section with the "Customize Voices" button
-            showAnalysisSection();
-        }
+    // Display basic metrics
+    pageCount.textContent = analysis.page_count || 0;
+    wordCount.textContent = analysis.word_count || 0;
+    speakerCount.textContent = analysis.char_count || 0;
 
+    // Handle speakers display
+    speakers = analysis.speakers || [];
+    speakersList.innerHTML = speakers.length > 0 
+        ? speakers.map(speaker =>`<div class="py-2 px-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
+                    <span class="font-medium dark:text-gray-200">${speaker.name || 'Unknown'}</span>
+                    <span class="text-gray-500 dark:text-gray-400 text-sm ml-2">
+                        (${speaker.frequency || 0} mentions)
+                    </span>
+                </div>`).join('')
+        : '<div class="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">' +
+          '<p class="text-yellow-700 dark:text-yellow-300">' +
+          'No speakers detected - will use default Host/Expert format</p></div>';
+
+    // Show detailed debug info if available
+    if (analysis.debug) {
+        const debugInfo = document.createElement('div');
+        debugInfo.className = 'mt-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg';
+        debugInfo.innerHTML = `
+            <h4 class="font-bold mb-2 dark:text-white">Debug Information:</h4>
+            <p class="text-sm"><strong>File:</strong> ${analysis.debug.file_path}</p>
+            <p class="text-sm"><strong>Size:</strong> ${analysis.debug.file_size} bytes</p>
+            <div class="mt-2">
+                ${analysis.debug.extraction_attempts.map(([lib, result]) => `
+                <div class="mb-2">
+                    <p class="font-medium dark:text-gray-300">${lib}:</p>
+                    <pre class="text-xs p-2 bg-white dark:bg-gray-700 rounded overflow-auto">${
+                        result.length > 100 ? result.substring(0, 100) + '...' : result
+                    }</pre>
+                </div>
+                `).join('')}
+            </div>
+        `;
+        speakersList.after(debugInfo);
+    }
+
+    showAnalysisSection();
+}
         function showVoiceCustomization() {
             voiceCustomization.innerHTML = speakers.map(speaker => {
                 const speakerId = speaker.name.replace(/\s+/g, '-');
