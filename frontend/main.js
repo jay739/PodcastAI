@@ -1,65 +1,12 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron')
-const path = require('path')
+const { app } = require('electron')
+const { setupFileHandlers } = require('./src/main/ipc/fileHandlers')
+const { setupPodcastHandlers } = require('./src/main/ipc/podcastHandlers')
+const createMainWindow = require('./src/main/mainWindow')
 const axios = require('axios')
 const FormData = require('form-data')
-const fs = require('fs');
+
 
 const API_URL = 'http://localhost:5001'
-let mainWindow
-
-function createWindow() {
-  mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
-    webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
-      nodeIntegration: false,
-      contextIsolation: true,
-      sandbox: true
-    }
-  })
-
-  mainWindow.loadFile(path.join(__dirname, 'index.html'))
-  // mainWindow.webContents.openDevTools() // Dev tools for debugging
-}
-
-// File Operations
-ipcMain.handle('files:upload', async (_, filePath) => {
-  try {
-    const form = new FormData();
-    form.append('file', fs.createReadStream(filePath));
-    
-    const response = await axios.post(`${API_URL}/api/upload`, form, {
-      headers: {
-        ...form.getHeaders(),
-        'Content-Type': 'multipart/form-data'
-      }
-    });
-    
-    return response.data;
-  } catch (error) {
-    console.error('Upload error details:', error);
-    throw new Error(error.response?.data?.error || 'File upload failed');
-  }
-});
-
-ipcMain.handle('files:select', async () => {
-  const { filePaths } = await dialog.showOpenDialog({
-    properties: ['openFile'],
-    filters: [{ name: 'PDF Files', extensions: ['pdf'] }]
-  })
-  return filePaths[0] || null
-})
-
-ipcMain.handle('files:analyze', async (_, fileId) => {
-  try {
-    const response = await axios.get(`${API_URL}/api/analyze/${fileId}`)
-    return response.data
-  } catch (error) {
-    console.error('Analysis error:', error)
-    throw new Error(error.response?.data?.error || 'Analysis failed')
-  }
-})
 
 // Podcast Generation
 ipcMain.handle('podcast:generate', async (_, config) => {
@@ -92,11 +39,18 @@ ipcMain.handle('check-server', async () => {
 });
 
 app.whenReady().then(() => {
-  createWindow()
+  setupFileHandlers()
+  setupPodcastHandlers()
   
+  const mainWindow = createMainWindow()
+
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    if (BrowserWindow.getAllWindows().length === 0) createMainWindow()
   })
+})
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') app.quit()
 })
 
 ipcMain.handle('podcast:download', async (_, jobId) => {
