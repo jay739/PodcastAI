@@ -1,22 +1,61 @@
 {
   "name": "podcast-generator",
   "version": "1.0.0",
-  "main": "main.js",
+  "main": "src/main/main.js",
   "scripts": {
     "start": "electron .",
-    "install-python-deps": "pip install -r requirements.txt"
+    "dev": "concurrently \"npm run start\" \"cd backend && python server.py\"",
+    "install-python-deps": "pip install -r backend/requirements.txt",
+    "postinstall": "electron-rebuild",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder",
+    "test": "jest"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "podcast",
+    "electron",
+    "flask",
+    "ai"
+  ],
+  "author": "Team 4",
   "license": "ISC",
-  "description": "",
+  "description": "AI-powered podcast generator with Electron frontend and Flask backend",
   "devDependencies": {
-    "axios": "^1.8.1",
+    "axios": "^1.8.4",
+    "concurrently": "^8.2.2",
     "electron": "^34.3.0",
-    "form-data": "^4.0.2"
+    "electron-builder": "^24.13.3",
+    "electron-rebuild": "^3.2.9",
+    "form-data": "^4.0.2",
+    "jest": "^29.7.0"
   },
   "dependencies": {
+    "dotenv": "^16.4.1",
     "duckdb": "^1.2.0",
-    "electron-rebuild": "^3.2.9"
+    "electron-log": "^5.3.3",
+    "electron-updater": "^6.1.7",
+    "fs-extra": "^11.3.0"
+  },
+  "build": {
+    "appId": "com.example.podcastgenerator",
+    "productName": "Podcast Generator",
+    "extraResources": [
+      {
+        "from": "backend",
+        "to": "app-backend",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
   }
 }

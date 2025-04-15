@@ -1,47 +1,138 @@
 const { ipcMain, dialog } = require('electron')
-const { handleFileUpload } = require('./fileHandlers')
+const fs = require('fs')
+const path = require('path')
+const FormData = require('form-data')
+const axios = require('axios')
+const log = require('electron-log')
 
-module.exports = function setupFileHandlers() {
-    ipcMain.handle('files:select', async () => {
-        const { filePaths } = await dialog.showOpenDialog({/* ... */})
-        return filePaths[0] || null
-    })
-  
-    ipcMain.handle('files:upload', async (_, filePath) => {
+// Configuration
+const API_URL = 'http://localhost:5001'
+const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
+
+module.exports = { setupFileHandlers }
+
+function setupFileHandlers() {
+    // File selection handler
+    ipcMain.handle('files:select', handleFileSelect)
+    
+    // File upload handler
+    ipcMain.handle('files:upload', handleFileUpload)
+    
+    // File analysis handler
+    ipcMain.handle('files:analyze', handleFileAnalysis)
+}
+
+async function handleFileSelect() {
     try {
-        const form = new FormData();
-        form.append('file', fs.createReadStream(filePath));
-        
-        const response = await axios.post(`${API_URL}/api/upload`, form, {
-        headers: {
-            ...form.getHeaders(),
-            'Content-Type': 'multipart/form-data'
+        const { filePaths } = await dialog.showOpenDialog({
+            properties: ['openFile'],
+            filters: [
+                { name: 'PDF Files', extensions: ['pdf'] },
+                { name: 'All Files', extensions: ['*'] }
+            ]
+        })
+
+        if (!filePaths || filePaths.length === 0) {
+            log.info('File selection cancelled by user')
+            return null
         }
-        });
-        
-        return response.data;
+
+        const selectedPath = filePaths[0]
+        log.info(`Selected file: ${selectedPath}`)
+        return selectedPath
+
     } catch (error) {
-        console.error('Upload error details:', error);
-        throw new Error(error.response?.data?.error || 'File upload failed');
+        log.error('File selection error:', error)
+        throw new Error('Failed to select file')
     }
-    });
+}
 
-    ipcMain.handle('files:select', async () => {
-    const { filePaths } = await dialog.showOpenDialog({
-        properties: ['openFile'],
-        filters: [{ name: 'PDF Files', extensions: ['pdf'] }]
-    })
-    return filePaths[0] || null
-    })
-
-    ipcMain.handle('files:analyze', async (_, fileId) => {
+async function handleFileUpload(_, filePath) {
     try {
-        const response = await axios.get(`${API_URL}/api/analyze/${fileId}`)
-        return response.data
-    } catch (error) {
-        console.error('Analysis error:', error)
-        throw new Error(error.response?.data?.error || 'Analysis failed')
-    }
-    })
+        // Validate file path
+        if (!filePath || typeof filePath !== 'string') {
+            throw new Error('Invalid file path provided')
+        }
 
+        // Security check
+        if (path.isAbsolute(filePath)) {
+            const normalizedPath = path.normalize(filePath)
+            if (normalizedPath !== filePath) {
+                throw new Error('Potential path traversal attempt detected')
+            }
+        }
+
+        // Check file existence and size
+        const stats = fs.statSync(filePath)
+        if (!stats.isFile()) {
+            throw new Error('Path does not point to a valid file')
+        }
+
+        if (stats.size > MAX_FILE_SIZE) {
+            throw new Error(`File size exceeds ${MAX_FILE_SIZE / (1024 * 1024)}MB limit`)
+        }
+
+        // Prepare and send the file
+        const form = new FormData()
+        form.append('file', fs.createReadStream(filePath), {
+            filename: path.basename(filePath),
+            knownLength: stats.size
+        })
+
+        log.info(`Uploading file: ${filePath} (${stats.size} bytes)`)
+        const response = await axios.post(`${API_URL}/api/upload`, form, {
+            headers: {
+                ...form.getHeaders(),
+                'Content-Length': form.getLengthSync()
+            },
+            maxContentLength: MAX_FILE_SIZE,
+            maxBodyLength: MAX_FILE_SIZE,
+            timeout: 30000 // 30 seconds timeout
+        })
+
+        log.info('Upload successful:', response.data)
+        return response.data
+
+    } catch (error) {
+        const errorMessage = getErrorMessage(error)
+        log.error('File upload failed:', errorMessage)
+        throw new Error(errorMessage)
+    }
+}
+
+async function handleFileAnalysis(_, fileId) {
+    try {
+        if (!fileId || typeof fileId !== 'string') {
+            throw new Error('Invalid file ID provided')
+        }
+
+        log.info(`Starting analysis for file ID: ${fileId}`)
+        const response = await axios.get(`${API_URL}/api/analyze/${fileId}`, {
+            timeout: 60000 // 60 seconds timeout
+        })
+
+        log.info('Analysis completed:', response.data)
+        return response.data
+
+    } catch (error) {
+        const errorMessage = getErrorMessage(error)
+        log.error('Analysis failed:', errorMessage)
+        throw new Error(errorMessage)
+    }
+}
+
+// Helper function to extract meaningful error messages
+function getErrorMessage(error) {
+    if (error.response) {
+        // The request was made and the server responded with a status code
+        return error.response.data?.error || 
+               error.response.data?.message || 
+               `Server responded with ${error.response.status}`
+    } else if (error.request) {
+        // The request was made but no response was received
+        return 'No response received from server'
+    } else {
+        // Something happened in setting up the request
+        return error.message || 'Unknown error occurred'
+    }
 }

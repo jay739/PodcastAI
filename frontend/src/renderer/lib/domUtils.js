@@ -1,12 +1,40 @@
-  // frontend/src/renderer/lib/domUtils.js
-export function hideAllSections() {
-    document.querySelectorAll('main > section').forEach(section => {
-      section.classList.add('hidden')
-    })
+export function createElement(tag, attributes = {}, children = []) {
+  const element = document.createElement(tag);
+  Object.entries(attributes).forEach(([key, value]) => {
+      if (key === 'class') {
+          element.className = value;
+      } else {
+          element.setAttribute(key, value);
+      }
+  });
+  
+  children.forEach(child => {
+      if (typeof child === 'string') {
+          element.appendChild(document.createTextNode(child));
+      } else {
+          element.appendChild(child);
+      }
+  });
+  
+  return element;
 }
 
-export function showSection(sectionId) {
-    hideAllSections()
-    const section = document.getElementById(sectionId)
-    if (section) section.classList.remove('hidden')
+export function toggleElementVisibility(element, isVisible) {
+  element.classList.toggle('hidden', !isVisible);
+}
+
+export function updateProgressBar(progressElement, percentage) {
+  progressElement.style.width = `${Math.max(0, Math.min(100, percentage))}%`;
+}
+
+export function disableElements(...elements) {
+  elements.forEach(el => {
+      if (el) el.disabled = true;
+  });
+}
+
+export function enableElements(...elements) {
+  elements.forEach(el => {
+      if (el) el.disabled = false;
+  });
 }

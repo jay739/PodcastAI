@@ -176,3 +176,21 @@ select:focus, input[type="text"]:focus {
     cursor: not-allowed;
   }
 
+#loading-overlay {
+    backdrop-filter: blur(2px);
+}
+
+.view-transition {
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.view-hidden {
+    opacity: 0;
+    transform: translateY(20px);
+    pointer-events: none;
+}
+
+.view-visible {
+    opacity: 1;
+    transform: translateY(0);
+}

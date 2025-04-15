@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PodcastAI Generator</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <style>
+        /* Add these styles */
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .progress-bar {
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: #3b82f6;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div id="loading-overlay">
+        <div class="text-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
+            <p class="mt-4 text-gray-700">Loading application...</p>
+        </div>
+    </div>
+
+    <div class="container mx-auto px-4 py-8">
+        <header class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-800">PodcastAI Generator</h1>
+            <p class="text-gray-600">Transform PDF content into engaging podcasts</p>
+        </header>
+
+        <main>
+            <!-- Views remain the same as your original -->
+            <section id="upload-view" class="mb-12"></section>
+            <section id="analysis-view" class="mb-12 hidden"></section>
+            <section id="voice-view" class="mb-12 hidden"></section>
+            <section id="progress-view" class="mb-12 hidden"></section>
+            <section id="results-view" class="mb-12 hidden"></section>
+        </main>
+    </div>
+
+    <script type="module">
+        import { initAllViews } from './src/renderer/views/index.js';
+        import { setupEventListeners } from './src/renderer/eventManager.js';
+        import { state } from './src/renderer/store/store.js';
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                await initAllViews();
+                setupEventListeners();
+                state.reset();
+                
+                // Show upload view by default
+                document.getElementById('upload-view').classList.remove('hidden');
+            } catch (error) {
+                console.error('Initialization failed:', error);
+                alert('Failed to initialize application');
+            } finally {
+                document.getElementById('loading-overlay').remove();
+            }
+        });
+    </script>
+</body>
+</html>

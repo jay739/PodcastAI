@@ -12,6 +12,6 @@ module.exports = function createMainWindow() {
       sandbox: true
     }
     })
-  win.loadFile(path.join(__dirname, '../../../index.html'))
+  win.loadFile(path.normalize(path.join(__dirname, '../../../index.html')))
   return win
 }
