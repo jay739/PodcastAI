@@ -2,7 +2,7 @@ import { state } from '../store/store.js';
 import { showUploadView } from './uploadView.js';
 
 export function initResultsView() {
-    const container = document.getElementById('results-container');
+    const container = document.getElementById('results-view');
     
     container.innerHTML = `
         <div class="bg-white rounded-lg shadow p-6">
@@ -29,7 +29,7 @@ export function initResultsView() {
     });
 }
 
-export function showResultView() {
+export function showResultsView() {
     const audioPlayer = document.getElementById('audio-player');
     if (state.generationJob?.filePath) {
         audioPlayer.src = state.generationJob.filePath;

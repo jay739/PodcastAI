@@ -2,7 +2,7 @@ import { state } from '../store/store.js';
 import { showUploadView, showVoiceView } from './voiceView.js';
 
 export function initAnalysisView() {
-    const container = document.getElementById('analysis-container');
+    const container = document.getElementById('analysis-view');
     
     container.innerHTML = `
         <div class="bg-white rounded-lg shadow p-6">

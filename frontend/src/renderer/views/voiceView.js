@@ -2,7 +2,7 @@ import { state } from '../store/store.js';
 import { showAnalysisView, showProgressView } from './progressView.js';
 
 export function initVoiceView() {
-    const container = document.getElementById('voice-container');
+    const container = document.getElementById('voice-view');
     
     container.innerHTML = `
         <div class="bg-white rounded-lg shadow p-6">

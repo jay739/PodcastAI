@@ -1,6 +1,0 @@
-{
-  "dependencies": {
-    "duckdb": "^1.2.0",
-    "electron-rebuild": "^3.2.9"
-  }
-}

@@ -3,7 +3,7 @@ import { showResultView } from './resultsView.js';
 import { updateProgress } from '../lib/progressManager.js';
 
 export function initProgressView() {
-    const container = document.getElementById('progress-container');
+    const container = document.getElementById('progress-view');
     
     container.innerHTML = `
         <div class="bg-white rounded-lg shadow p-6">

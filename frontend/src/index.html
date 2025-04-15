@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PodcastAI</title>
+    <style>
+        [hidden] { display: none !important; }
+        .error-message {
+            color: red;
+            padding: 1rem;
+            border: 1px solid red;
+            margin: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+        <p id="loading-text">Loading application...</p>
+        <div id="error-message" class="error-message" hidden></div>
+    </div>
+
+    <div id="app-container" hidden>
+        <div id="upload-view"></div>
+        <div id="analysis-view"></div>
+        <div id="voice-view" class="hidden"></div>
+        <div id="progress-view" class="hidden"></div>
+        <div id="results-view" class="hidden"></div>
+    </div>
+
+    <script type="module">
+        // Debugging first
+        console.log('DOM state:', document.readyState);
+        
+        async function initializeApp() {
+            try {
+                console.log('Starting app initialization');
+                
+                // 1. Verify critical DOM elements exist
+                const requiredElements = {
+                    loadingOverlay: document.getElementById('loading-overlay'),
+                    appContainer: document.getElementById('app-container'),
+                    uploadView: document.getElementById('upload-view')
+                };
+                
+                for (const [name, element] of Object.entries(requiredElements)) {
+                    if (!element) throw new Error(`Missing required element: ${name}`);
+                }
+
+                // 2. Load modules with error handling
+                const { initAllViews } = await import('./renderer/views/index.js');
+                const { state } = await import('./renderer/store/store.js');
+
+                // 3. Initialize application
+                await initAllViews();
+                state.reset();
+
+                // 4. Transition UI states
+                requiredElements.loadingOverlay.hidden = true;
+                requiredElements.appContainer.hidden = false;
+                
+                console.log('App initialized successfully');
+            } catch (error) {
+                console.error('Initialization failed:', error);
+                showError(error.message);
+            }
+        }
+
+        function showError(message) {
+            const errorEl = document.getElementById('error-message') || document.body;
+            errorEl.innerHTML = `
+                <div class="error-message">
+                    <p>${message}</p>
+                    <button onclick="window.location.reload()">Reload App</button>
+                </div>
+            `;
+            errorEl.hidden = false;
+        }
+
+        // Start initialization
+        if (document.readyState === 'complete') {
+            initializeApp();
+        } else {
+            document.addEventListener('DOMContentLoaded', initializeApp);
+        }
+    </script>
+</body>
+</html>

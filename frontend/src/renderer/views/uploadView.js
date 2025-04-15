@@ -3,7 +3,7 @@ import { handleFileSelection, setupFileDropZone } from '../lib/fileUtils.js';
 import { showAnalysisView } from './analysisView.js';
 
 export function initUploadView() {
-    const container = document.getElementById('upload-container');
+    const container = document.getElementById('upload-view');
     container.innerHTML = `
         <div class="file-drop-area p-8 border-2 border-dashed rounded-lg text-center" id="drop-area">
             <p class="mb-4 text-gray-600">Drag & drop your PDF here, or</p>

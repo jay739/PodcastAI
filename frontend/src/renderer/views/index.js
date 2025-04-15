@@ -1,16 +1,20 @@
-// src/renderer/views/index.js
 import { initUploadView, showUploadView } from './uploadView.js';
 import { initAnalysisView, showAnalysisView } from './analysisView.js';
 import { initVoiceView, showVoiceView } from './voiceView.js';
 import { initProgressView, showProgressView } from './progressView.js';
-import { initResultsView, showResultView } from './resultsView.js';
+import { initResultsView, showResultsView } from './resultsView.js';
 
 export async function initAllViews() {
-    initUploadView();
+    console.log('Initializing views...');
+    try{initUploadView();
     initAnalysisView();
     initVoiceView();
     initProgressView();
-    initResultsView();
+    initResultsView();}
+    catch(error){
+        console.log('Error initializing views:', error);
+        console.error(error);
+    }
 }
 
 export {
@@ -18,5 +22,5 @@ export {
     showAnalysisView,
     showVoiceView,
     showProgressView,
-    showResultView
+    showResultsView
 };
