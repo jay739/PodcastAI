@@ -2,16 +2,17 @@ from typing import List, Dict, Optional
 from datetime import datetime
 from pdf_processor import analyze_pdf, chunk_text
 from llm_service import OllamaLLMProvider
-from tts_service import generate_audio
+from tts_service import synthesize_podcast_audio
 from vector_db import TextChunk, FaissVectorDB
 from services.transcript_utils import parse_transcript
 import re
 
 class UnifiedPodcastGenerator:
-    def __init__(self, chunks: List[TextChunk], podcast_title: str = "Insights Unpacked",
+    def __init__(self, fileID: str, chunks: List[TextChunk], podcast_title: str = "Insights Unpacked",
                  host_names: Optional[List[str]] = None, guest_name: Optional[str] = None):
         if not chunks:
             raise ValueError("Cannot initialize with empty chunks.")
+        self.fileID = fileID
         self.chunks = chunks
         self.podcast_title = podcast_title
         self.hosts = host_names or ["Jamie", "Taylor"]
@@ -78,9 +79,13 @@ Generate a markdown-formatted podcast transcript. Follow this structure:
 """
         transcript = self.llm.generate_response(prompt, max_tokens=5000)
         transcript = self._format_dialogue(transcript)
+        transcript_path = f"outputs/{self.fileID}_transcript.md"
+        with open(transcript_path, "w", encoding="utf-8") as f:
+            f.write(transcript)
         if "---END OF PODCAST---" not in transcript:
             transcript += "\n\n---END OF PODCAST---"
-        return f"# {self.podcast_title} - Episode {self.episode_number}: {self.episode_subtitle}\n\n{transcript}"
+        full_transcript = f"# {self.podcast_title} - Episode {self.episode_number}: {self.episode_subtitle}\n\n{transcript}"
+        return full_transcript, transcript_path
 
 class PodcastService:
     def generate_podcast(self, fileID: str, config: Dict) -> Dict:
@@ -92,15 +97,16 @@ class PodcastService:
         text_chunks = [TextChunk(i, chunk, metadata) for i, chunk in enumerate(chunks)]
 
         generator = UnifiedPodcastGenerator(
+            fileID=fileID,
             chunks=text_chunks,
             podcast_title=config.get("title", "Generated Podcast"),
             host_names=config.get("hosts", ["Host 1", "Host 2"]),
             guest_name=config.get("guest")
         )
 
-        transcript = generator.generate_transcript()
+        transcript,transcript_path = generator.generate_transcript()
         output_path = f"outputs/{fileID}.mp3"
-        generate_audio(parse_transcript(transcript), output_path)
+        synthesize_podcast_audio(parse_transcript(transcript_path), output_path)
 
         return {
             "fileID": fileID,

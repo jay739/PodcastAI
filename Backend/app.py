@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from routes.file_routes import file_blueprint
 from config import Config
 from pdf_processor import analyze_pdf, chunk_text
-from tts_service import generate_audio
+from tts_service import synthesize_podcast_audio
 from services.podcast_service import podcast_service
 
 app = Flask(__name__)
@@ -17,13 +17,9 @@ CORS(app)
 
 app.config.from_object(Config)
 app.register_blueprint(file_blueprint, url_prefix='/api')
-# Ensure upload and output directories exist
+
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['OUTPUT_FOLDER'], exist_ok=True)
-
-####################################
-# 📄 UPLOAD API
-####################################
 
 @app.route('/api/upload', methods=['POST'])
 def upload_pdf():
@@ -42,9 +38,6 @@ def upload_pdf():
 
         return jsonify({"success": True, "fileID": file_id, "filename": filename})
 
-####################################
-# 🐞 DEBUG PDF TEXT EXTRACTION
-####################################
 
 @app.route('/api/debug-pdf/<fileID>', methods=['GET'])
 def debug_pdf(fileID):
@@ -80,10 +73,6 @@ def debug_pdf(fileID):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-####################################
-# 🎙️ GENERATE PODCAST
-####################################
-
 @app.route('/api/generate', methods=['POST'])
 def generate_podcast():
     print("Generation started")
@@ -116,10 +105,6 @@ def generate_podcast():
             "message": "Podcast generation failed"
         }), 500
 
-####################################
-# 📈 STATUS CHECK
-####################################
-
 @app.route('/api/status/<job_id>', methods=['GET'])  
 def get_status(job_id):  
     return jsonify({
@@ -129,20 +114,12 @@ def get_status(job_id):
         "resultUrl": f"/api/download/{job_id}"  
     })
 
-####################################
-# 📥 DOWNLOAD PODCAST
-####################################
-
 @app.route('/api/download/<job_id>', methods=['GET'])
 def download_podcast(job_id): 
     return jsonify({
         "url": f"/api/audio/{job_id}.mp3",
         "expires": (datetime.now() + timedelta(days=1)).isoformat()
     })
-
-####################################
-# 🎵 SERVE AUDIO
-####################################
 
 @app.route('/api/audio/<filename>', methods=['GET'])
 def serve_audio(filename):
@@ -154,10 +131,6 @@ def serve_audio(filename):
         mimetype='audio/mpeg',
         as_attachment=False
     )
-
-####################################
-# 🚀 RUN APP
-####################################
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5001, debug=True)

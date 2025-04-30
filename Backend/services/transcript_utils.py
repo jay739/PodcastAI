@@ -1,21 +1,22 @@
 import re
-from typing import List, Dict
+import pandas as pd
 
-def parse_transcript(transcript: str) -> List[Dict[str, str]]:
+def parse_transcript(transcript_path: str) -> pd.DataFrame:
     """
-    Parse a markdown podcast transcript into a list of dialogue blocks.
-    Each block will be a dict with 'Name' and 'Dialogue'.
+    Parse a markdown-formatted transcript from file into a DataFrame
+    with columns: Name, Dialogue
     """
-    dialogue_list = []
-    lines = transcript.splitlines()
-    for line in lines:
-        # Match lines like "Alice: Welcome to the podcast!"
-        match = re.match(r"^(.*?):\s+(.*)", line)
-        if match:
-            speaker = match.group(1).strip()
-            dialogue = match.group(2).strip()
-            dialogue_list.append({
-                "Name": speaker,
-                "Dialogue": dialogue
-            })
-    return dialogue_list
+    dialogue_data = []
+    pattern = re.compile(r"^([\w\s\.\-]+):\s(.+)")
+
+    with open(transcript_path, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            match = pattern.match(line)
+            if match:
+                speaker = match.group(1).strip()
+                dialogue = match.group(2).strip()
+                if speaker and dialogue:
+                    dialogue_data.append({"Name": speaker, "Dialogue": dialogue})
+
+    return pd.DataFrame(dialogue_data)
