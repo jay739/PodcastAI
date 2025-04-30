@@ -4,23 +4,28 @@ import { initVoiceView, showVoiceView } from './voiceView.js';
 import { initProgressView, showProgressView } from './progressView.js';
 import { initResultsView, showResultsView } from './resultsView.js';
 
+import { setupEventListeners } from './eventManager.js'; 
+
 export async function initAllViews() {
-    console.log('Initializing views...');
-    try{initUploadView();
+  console.log('Initializing views...');
+  try {
+    initUploadView();
     initAnalysisView();
     initVoiceView();
     initProgressView();
-    initResultsView();}
-    catch(error){
-        console.log('Error initializing views:', error);
-        console.error(error);
-    }
+    initResultsView();
+
+    setupEventListeners(); 
+  } catch (error) {
+    console.log('Error initializing views:', error);
+    console.error(error);
+  }
 }
 
 export {
-    showUploadView,
-    showAnalysisView,
-    showVoiceView,
-    showProgressView,
-    showResultsView
+  showUploadView,
+  showAnalysisView,
+  showVoiceView,
+  showProgressView,
+  showResultsView
 };

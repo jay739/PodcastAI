@@ -1,45 +1,80 @@
-import pandas as pd
 import os
-import subprocess
+import sys
+import torch
+import numpy as np
+import pandas as pd
+import re
+from datetime import datetime
 from pydub import AudioSegment
 
-VOICE_MODEL_DIR = "voice_models"
-os.makedirs(VOICE_MODEL_DIR, exist_ok=True)
+# === STEP 1: ADD MARS5 PATH TO PYTHON PATH ===
+MARS5_PATH = os.path.abspath("voice_models/MARS5-TTS")  # Adjust this if MARS5 is elsewhere
+if MARS5_PATH not in sys.path:
+    sys.path.append(MARS5_PATH)
 
-# Map characters to voice models
-VOICE_MODELS = {
-    "male": os.path.join(VOICE_MODEL_DIR, "en_US-lessac-medium.onnx"),
-    "female": os.path.join(VOICE_MODEL_DIR, "en_US-amy-medium.onnx")
-}
+# === STEP 2: IMPORT FROM MARS5 ===
+from inference import TTSInference  # this is the correct path in MARS5-TTS
 
-def run_piper(text, voice_path, output_path):
-    """Call Piper CLI to synthesize speech"""
-    if not os.path.exists(voice_path):
-        raise FileNotFoundError(f"Voice model not found at {voice_path}. Please download the required voice models.")
-    subprocess.run([
-        "./piper",  # Make sure piper binary is in same directory or update path
-        "--model", voice_path,
-        "--output_file", output_path,
-        "--text", text
-    ], check=True)
+class MarsTTSGenerator:
+    def __init__(self):
+        checkpoint = os.path.join(MARS5_PATH, "checkpoints/mars5.pth")
+        config = os.path.join(MARS5_PATH, "configs/mars5.yaml")
+        device = "cuda" if torch.cuda.is_available() else "cpu"
 
-def generate_audio(script_df: pd.DataFrame, output_path: str, background_music: bool = False):
-    """Generate audio using Piper CLI"""
-    combined = AudioSegment.silent(duration=0)
-    
+        self.tts = TTSInference(
+            checkpoint_path=checkpoint,
+            config_path=config,
+            device=device
+        )
+
+    def generate_segment(self, text: str, speaker_id: int = 0) -> AudioSegment:
+        wav, sr = self.tts.infer(text, speaker_id=speaker_id)
+        audio_array = (wav * 32767).astype(np.int16)
+        return AudioSegment(
+            audio_array.tobytes(),
+            frame_rate=sr,
+            sample_width=2,
+            channels=1
+        )
+
+
+def parse_transcript(path: str) -> pd.DataFrame:
+    with open(path, "r", encoding="utf-8") as f:
+        lines = f.read().strip().splitlines()
+
+    pattern = re.compile(r"^([\w\s\.\-]+):\s(.+)")
+    conversation = []
+    current_speaker, current_line = None, ""
+
+    for line in lines:
+        match = pattern.match(line)
+        if match:
+            if current_speaker:
+                conversation.append((current_speaker, current_line.strip()))
+            current_speaker = match.group(1).strip()
+            current_line = match.group(2).strip()
+        else:
+            if current_speaker:
+                current_line += " " + line
+
+    if current_speaker:
+        conversation.append((current_speaker, current_line.strip()))
+
+    return pd.DataFrame(conversation, columns=["Name", "Dialogue"])
+
+
+def generate_audio(script_df: pd.DataFrame, output_path: str) -> str:
+    tts = MarsTTSGenerator()
+    combined = AudioSegment.silent(duration=500)
+
     for _, row in script_df.iterrows():
-        voice_type = "male" if row["Name"] == "Host" else "female"
-        voice_model = VOICE_MODELS[voice_type]
-        temp_wav = f"temp_{row['Order']}.wav"
+        speaker = row["Name"]
+        text = row["Dialogue"]
+        print(f"🔊 {speaker}: {text[:40]}...")
+        segment = tts.generate_segment(text)
+        combined += segment + AudioSegment.silent(duration=300)
 
-        run_piper(row["Dialogue"], voice_model, temp_wav)
-        
-        segment = AudioSegment.from_wav(temp_wav)
-        combined += segment + AudioSegment.silent(duration=500)
-        os.remove(temp_wav)
-    
-    if background_music:
-        music = AudioSegment.from_mp3("assets/bg_music.mp3") - 10
-        combined = combined.overlay(music, loop=True)
-
-    combined.export(output_path, format="mp3")
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    combined.export(output_path, format="mp3", bitrate="192k")
+    print(f"✅ Podcast saved: {output_path}")
+    return output_path

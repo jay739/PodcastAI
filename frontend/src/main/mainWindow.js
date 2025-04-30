@@ -17,7 +17,7 @@ module.exports = function createMainWindow() {
 
   // Load the index.html file
   const indexFilePath = process.env.NODE_ENV === 'development'
-  ? path.join(__dirname, '../../index.html')  // Dev path
+  ? path.join(__dirname, '../index.html')  // Dev path
   : path.join(__dirname, '../index.html')    // Production path
 
 console.log('Loading index file from:', indexFilePath)  // Verify path

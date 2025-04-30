@@ -16,19 +16,19 @@ def upload_file():
     if not file.filename.lower().endswith('.pdf'):
         return jsonify({"error": "Only PDF files are allowed"}), 400
     
-    file_id = str(uuid.uuid4())
-    filename = secure_filename(f"{file_id}.pdf")
+    fileID = str(uuid.uuid4())
+    filename = secure_filename(f"{fileID}.pdf")
     file.save(os.path.join('uploads', filename))
     
     return jsonify({
         "success": True,
-        "fileId": file_id,
+        "fileID": fileID,
         "filename": filename
     })
 
-@file_blueprint.route('/analyze/<file_id>', methods=['GET'])
-def analyze_file(file_id):
-    file_path = os.path.join('uploads', f"{file_id}.pdf")
+@file_blueprint.route('/analyze/<fileID>', methods=['GET'])
+def analyze_file(fileID):
+    file_path = os.path.join('uploads', f"{fileID}.pdf")
     
     if not os.path.exists(file_path):
         return jsonify({"error": "File not found"}), 404
@@ -36,8 +36,11 @@ def analyze_file(file_id):
     try:
         analysis = analyze_pdf(file_path)
         return jsonify({
-            "success": True,
-            "analysis": analysis
-        })
+        "success":True,
+        "page_count": analysis.get("page_count", 0),
+        "word_count": analysis.get("word_count", 0),
+        "char_count": analysis.get("char_count", 0),
+        "speakers": analysis.get("speakers", [])
+    })
     except Exception as e:
         return jsonify({"error": str(e)}), 500

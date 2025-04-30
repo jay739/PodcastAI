@@ -1,52 +1,52 @@
-const { app } = require('electron')
-const { setupFileHandlers } = require('./ipc/fileHandlers')
-const { setupPodcastHandlers } = require('./ipc/podcastHandlers')
-const log = require('electron-log')
+if (process.env.NODE_ENV === 'development') {
+  require('electron-reload')(__dirname, {
+    electron: require(`../../node_modules/electron`)
+  });
+}
+
+const { app, BrowserWindow } = require('electron');
+const { setupFileHandlers } = require('./ipc/fileHandlers');
+const { setupPodcastHandlers } = require('./ipc/podcastHandlers');
+const log = require('electron-log');
 
 // Configure logging
-log.transports.file.level = 'debug'
-log.transports.console.level = 'debug'
+log.transports.file.level = 'debug';
+log.transports.console.level = 'debug';
+log.info('App starting...');
 
-log.info('App starting...')
-
-// Initialize IPC Handlers
 function initialize() {
-  setupFileHandlers()
-  setupPodcastHandlers()
+  setupFileHandlers();
+  setupPodcastHandlers();
+}
+
+function createWindow() {
+  const createMainWindow = require('./mainWindow');
+  return createMainWindow();
 }
 
 app.whenReady().then(() => {
-  log.info('App is ready')
-  initialize()
-  
-  const createMainWindow = require('./mainWindow')
-  const mainWindow = createMainWindow()
-  
+  log.info('App is ready');
+  initialize();
+  createWindow();
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
-      log.info('Creating new window')
-      createMainWindow()
+      log.info('Recreating window on macOS');
+      createWindow();
     }
-  })
-})
+  });
+});
 
 app.on('window-all-closed', () => {
-  log.info('All windows closed')
-  if (process.platform !== 'darwin') app.quit()
-})
+  log.info('All windows closed');
+  if (process.platform !== 'darwin') app.quit();
+});
 
-// Error handling
+// Global error handling
 process.on('uncaughtException', (error) => {
-  log.error('Uncaught Exception:', error)
-})
+  log.error('Uncaught Exception:', error);
+});
 
 process.on('unhandledRejection', (reason, promise) => {
-  log.error('Unhandled Rejection at:', promise, 'reason:', reason)
-})
-
-// ipcMain.on('console-log', (event, { method, args }) => {
-//   const formattedArgs = args.map(arg => 
-//     typeof arg === 'object' ? JSON.stringify(arg, null, 2) : arg
-//   )
-//   log[method](...formattedArgs)
-// })
+  log.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});

@@ -5,9 +5,8 @@ const FormData = require('form-data')
 const axios = require('axios')
 const log = require('electron-log')
 
-// Configuration
 const API_URL = 'http://localhost:5001'
-const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
+const MAX_FILE_SIZE = 50 * 1024 * 1024 
 
 module.exports = { setupFileHandlers }
 
@@ -100,14 +99,14 @@ async function handleFileUpload(_, filePath) {
     }
 }
 
-async function handleFileAnalysis(_, fileId) {
+async function handleFileAnalysis(_, fileID) {
     try {
-        if (!fileId || typeof fileId !== 'string') {
+        if (!fileID || typeof fileID !== 'string') {
             throw new Error('Invalid file ID provided')
         }
 
-        log.info(`Starting analysis for file ID: ${fileId}`)
-        const response = await axios.get(`${API_URL}/api/analyze/${fileId}`, {
+        log.info(`Starting analysis for file ID: ${fileID}`)
+        const response = await axios.get(`${API_URL}/api/analyze/${fileID}`, {
             timeout: 60000 // 60 seconds timeout
         })
 
@@ -121,18 +120,14 @@ async function handleFileAnalysis(_, fileId) {
     }
 }
 
-// Helper function to extract meaningful error messages
 function getErrorMessage(error) {
     if (error.response) {
-        // The request was made and the server responded with a status code
         return error.response.data?.error || 
                error.response.data?.message || 
                `Server responded with ${error.response.status}`
     } else if (error.request) {
-        // The request was made but no response was received
         return 'No response received from server'
     } else {
-        // Something happened in setting up the request
         return error.message || 'Unknown error occurred'
     }
 }

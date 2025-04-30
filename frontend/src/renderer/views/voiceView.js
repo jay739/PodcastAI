@@ -1,82 +1,124 @@
-import { state } from '../store/store.js';
-import { showAnalysisView, showProgressView } from './progressView.js';
+import { podcastAPI } from "../api/podcastAPI.js";
+import { showProgressView } from "./progressView.js";
+import { state } from "../store/store.js";
 
 export function initVoiceView() {
-    const container = document.getElementById('voice-view');
-    
-    container.innerHTML = `
-        <div class="bg-white rounded-lg shadow p-6">
-            <h2 class="text-xl font-semibold mb-4">Customize Character Voices</h2>
-            <div id="voice-cards-container" class="mb-6"></div>
-            <div class="flex items-center mb-6">
-                <input type="checkbox" id="background-music" class="mr-2">
-                <label for="background-music">Add background music</label>
-            </div>
-            <div class="flex space-x-4">
-                <button id="back-to-analysis" class="btn-secondary">Back</button>
-                <button id="generate-podcast" class="btn-primary">Generate Podcast</button>
-            </div>
-        </div>
-    `;
+  const voiceView = document.getElementById("voice-view");
+  const fileID = state.currentFile?.id;
 
-    document.getElementById('back-to-analysis').addEventListener('click', showAnalysisView);
-    document.getElementById('generate-podcast').addEventListener('click', () => {
-        saveVoiceSettings();
-        showProgressView();
-    });
+  if (!fileID) {
+    voiceView.innerHTML = `
+      <div style="text-align: center; padding: 2rem; color: #b00; font-weight: bold;">
+        ❗ No file to generate voice for.
+      </div>`;
+    return;
+  }
+
+  voiceView.innerHTML = `
+    <div style="max-width: 700px; margin: 2rem auto; padding: 2rem; background: #fff; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
+      <h2 style="text-align: center; color: #333;">🎤 Generate Podcast Voices</h2>
+
+      <label for="character-count" style="display: block; margin-top: 1rem; font-weight: bold;">Number of Speakers:</label>
+      <input type="number" id="character-count" min="1" max="10" value="2" style="padding: 0.5rem; width: 100%; border-radius: 6px; border: 1px solid #ccc; margin-bottom: 1rem;" />
+
+      <button id="generate-fields" style="margin-bottom: 1.5rem; padding: 0.75rem 1.25rem; border: none; background-color: #4f46e5; color: white; border-radius: 6px; cursor: pointer;">➕ Generate Speaker Fields</button>
+
+      <div id="character-inputs"></div>
+
+      <div style="text-align: center; margin-top: 2rem;">
+        <button id="generate-voice" style="padding: 0.75rem 2rem; font-size: 1rem; background-color: #10b981; color: white; border: none; border-radius: 8px; cursor: pointer;">
+          ▶️ Generate Podcast
+        </button>
+        <div id="voice-status" style="margin-top: 1rem; font-size: 0.95rem; color: #555;"></div>
+      </div>
+    </div>
+  `;
+
+  const inputsContainer = document.getElementById("character-inputs");
+  const status = document.getElementById("voice-status");
+
+  // Generate Speaker Fields
+  document.getElementById("generate-fields").addEventListener("click", () => {
+    const count = parseInt(document.getElementById("character-count").value, 10);
+    inputsContainer.innerHTML = "";
+
+    for (let i = 0; i < count; i++) {
+      inputsContainer.innerHTML += `
+        <div class="character-block" style="margin-bottom: 1rem; padding: 1rem; border: 1px solid #ddd; border-radius: 8px; background: #f9f9f9;">
+          <label style="font-weight: bold;">Speaker ${i + 1} Name:</label>
+          <input type="text" id="character-name-${i}" placeholder="e.g., Alice" style="display: block; margin-top: 0.25rem; margin-bottom: 0.75rem; padding: 0.5rem; width: 100%; border: 1px solid #ccc; border-radius: 6px;" />
+
+          <label style="font-weight: bold;">Gender:</label>
+          <select id="character-gender-${i}" style="display: block; margin-bottom: 0.75rem; padding: 0.5rem; width: 100%; border-radius: 6px;">
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+            <option value="neutral">Neutral</option>
+          </select>
+
+          <label style="font-weight: bold;">Tone/Alignment:</label>
+          <select id="character-tone-${i}" style="display: block; padding: 0.5rem; width: 100%; border-radius: 6px;">
+            <option value="positive">Positive</option>
+            <option value="neutral">Neutral</option>
+            <option value="negative">Negative</option>
+          </select>
+        </div>
+      `;
+    }
+  });
+
+  // Generate Podcast
+  document.getElementById("generate-voice").addEventListener("click", async () => {
+    const count = parseInt(document.getElementById("character-count").value, 10);
+    const speakers = [];
+
+    for (let i = 0; i < count; i++) {
+      const name = document.getElementById(`character-name-${i}`).value;
+      const gender = document.getElementById(`character-gender-${i}`).value;
+      const tone = document.getElementById(`character-tone-${i}`).value;
+
+      if (!name) {
+        status.innerText = `❗ Please provide a name for speaker ${i + 1}.`;
+        return;
+      }
+
+      speakers.push({ name, gender, tone });
+    }
+
+    try {
+      status.innerText = "⏳ Generating voice...";
+      const result = await podcastAPI.podcast.generate({ fileID: fileID, speakers });
+
+      status.innerText = `✅ Podcast generation started. Job ID: ${result.jobId}`;
+      console.log("VoiceView Job ID:", result.jobId);
+
+      window.currentJobId = result.jobId;
+      showProgressView();
+
+      // Listen for real-time progress
+      podcastAPI.on.progress(({ value, message }) => {
+        if (window.updateProgress) {
+          window.updateProgress(value, message);
+        }
+      });
+
+    } catch (err) {
+      console.error("Voice generation failed:", err);
+      status.innerText = "❌ Voice generation failed. See console.";
+    }
+  });
 }
 
 export function showVoiceView() {
-    updateVoiceCards();
-    document.getElementById('analysis-view').classList.add('hidden');
-    document.getElementById('voice-view').classList.remove('hidden');
-}
+  document.querySelectorAll(".view").forEach((view) => {
+    view.hidden = true;
+  });
 
-function updateVoiceCards() {
-    if (!state.analysisResults) return;
-    
-    const container = document.getElementById('voice-cards-container');
-    const speakers = state.analysisResults.speakers || [{ name: 'Host' }, { name: 'Expert' }];
-    
-    container.innerHTML = speakers.map(speaker => {
-        const speakerId = speaker.name.replace(/\s+/g, '-').toLowerCase();
-        return `
-            <div class="voice-card mb-4 p-4 border rounded-lg">
-                <h3 class="font-medium mb-3">${speaker.name}</h3>
-                <div class="mb-3">
-                    <label class="block mb-1">Voice Type</label>
-                    <select id="voice-type-${speakerId}" class="w-full p-2 border rounded">
-                        <option value="neutral">Neutral</option>
-                        <option value="deep">Deep</option>
-                        <option value="high">High</option>
-                        <option value="child">Child</option>
-                        <option value="elder">Elderly</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block mb-1">Emotion Level</label>
-                    <select id="emotion-${speakerId}" class="w-full p-2 border rounded">
-                        <option value="low">Subtle</option>
-                        <option value="medium" selected>Moderate</option>
-                        <option value="high">Dramatic</option>
-                    </select>
-                </div>
-            </div>
-        `;
-    }).join('');
-}
-
-function saveVoiceSettings() {
-    if (!state.analysisResults) return;
-    
-    const speakers = state.analysisResults.speakers || [{ name: 'Host' }, { name: 'Expert' }];
-    state.voiceSettings = {};
-    
-    speakers.forEach(speaker => {
-        const speakerId = speaker.name.replace(/\s+/g, '-').toLowerCase();
-        state.voiceSettings[speaker.name] = {
-            voiceType: document.getElementById(`voice-type-${speakerId}`).value,
-            emotion: document.getElementById(`emotion-${speakerId}`).value
-        };
-    });
+  const voiceView = document.getElementById("voice-view");
+  if (voiceView) {
+    voiceView.hidden = false;
+    initVoiceView();
+    console.log("VoiceView HTML rendered.");
+  } else {
+    console.error("Voice view element not found!");
+  }
 }

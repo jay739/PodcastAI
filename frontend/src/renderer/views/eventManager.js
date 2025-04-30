@@ -1,11 +1,11 @@
-import { state } from './store/store.js';
+import { state } from '../store/store.js';
 import { 
     showUploadView, 
     showAnalysisView,
     showVoiceView,
     showProgressView,
-    showResultView
-} from './views/index.js';
+    showResultsView
+} from './index.js';
 
 export function setupEventListeners() {
     // IPC Progress Updates

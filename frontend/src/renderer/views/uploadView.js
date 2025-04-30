@@ -1,45 +1,78 @@
-import { state } from '../store/store.js';
-import { handleFileSelection, setupFileDropZone } from '../lib/fileUtils.js';
-import { showAnalysisView } from './analysisView.js';
+import { showAnalysisView } from "./analysisView.js";
+import { state } from "../store/store.js";
+import { podcastAPI } from "../api/podcastAPI.js";
 
 export function initUploadView() {
-    const container = document.getElementById('upload-view');
-    container.innerHTML = `
-        <div class="file-drop-area p-8 border-2 border-dashed rounded-lg text-center" id="drop-area">
-            <p class="mb-4 text-gray-600">Drag & drop your PDF here, or</p>
-            <input type="file" id="file-input" accept=".pdf" class="hidden">
-            <button id="select-file-btn" class="btn-primary">
-                Select File
-            </button>
-            <p class="mt-2 text-sm text-gray-500" id="file-info">
-                No file selected
-            </p>
-        </div>
-    `;
+  const uploadView = document.getElementById("upload-view");
 
-    const fileInput = document.getElementById('file-input');
-    const selectBtn = document.getElementById('select-file-btn');
-    const dropArea = document.getElementById('drop-area');
-    const fileInfo = document.getElementById('file-info');
+  // Modern clean UI with styling hooks
+  uploadView.innerHTML = `
+    <div class="upload-container">
+      <h2 class="heading">🎙️ Generate Podcast from PDF</h2>
+      <p class="subtext">Select a PDF file to analyze and convert into a podcast.</p>
+      <button id="upload-button" class="upload-btn">📁 Select and Upload PDF</button>
+      <div id="upload-status" class="status-message"></div>
+    </div>
+  `;
 
-    setupFileDropZone(dropArea, fileInput, async () => {
-        try {
-            const file = await handleFileSelection(fileInput);
-            fileInfo.textContent = `Selected: ${file.name} (${formatFileSize(file.size)})`;
-            showAnalysisView();
-        } catch (error) {
-            fileInfo.textContent = error.message;
-            fileInfo.classList.add('text-red-500');
-        }
-    });
+  const uploadButton = document.getElementById("upload-button");
+  const statusDiv = document.getElementById("upload-status");
 
-    selectBtn.addEventListener('click', () => fileInput.click());
+  uploadButton.addEventListener("click", async () => {
+    try {
+      uploadButton.disabled = true;
+      statusDiv.innerText = "📂 Opening file picker...";
+
+      // Step 1: File picker
+      const filePath = await podcastAPI.files.select();
+      if (!filePath) {
+        statusDiv.innerText = "⚠️ No file selected.";
+        return;
+      }
+
+      statusDiv.innerText = "☁️ Uploading...";
+
+      // Step 2: Upload
+      const result = await podcastAPI.files.upload(filePath);
+      const fileID = result.fileID;
+
+      // Step 3: Save to state using store.js method
+      state.setFile({
+        name: filePath.split("/").pop(),
+        size: 0,
+        path: filePath,
+        id: fileID
+      });
+
+      statusDiv.innerHTML = `<span class="success">✅ File uploaded successfully.</span>`;
+
+      // Step 4: Analyze
+      statusDiv.innerHTML += `<br>🧠 Analyzing content...`;
+      const analysis = await podcastAPI.files.analyze(fileID);
+
+      state.setAnalysisResults(analysis);
+
+      // Step 5: Move to analysis view
+      showAnalysisView();
+
+    } catch (error) {
+      console.error("Upload error:", error);
+      statusDiv.innerHTML = `<span class="error">❌ Upload failed. Check the console for details.</span>`;
+    } finally {
+      uploadButton.disabled = false;
+    }
+  });
 }
 
 export function showUploadView() {
-    document.getElementById('upload-view').classList.remove('hidden');
-    document.getElementById('analysis-view').classList.add('hidden');
-    document.getElementById('voice-view').classList.add('hidden');
-    document.getElementById('progress-view').classList.add('hidden');
-    document.getElementById('results-view').classList.add('hidden');
+  document.querySelectorAll(".view").forEach((view) => {
+    view.hidden = true;
+  });
+
+  const uploadView = document.getElementById("upload-view");
+  if (uploadView) {
+    uploadView.hidden = false;
+  } else {
+    console.error("Upload view element not found!");
+  }
 }

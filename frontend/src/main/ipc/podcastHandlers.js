@@ -4,9 +4,8 @@ const log = require('electron-log')
 const path = require('path')
 const fs = require('fs-extra')
 
-// Import configuration (shared with fileHandlers)
-// const { API_BASE_URL } = require('../../../backend/config').config
-// const { OUTPUT_FOLDER } = require('../../../backend/config').config
+const API_BASE_URL = 'http://localhost:5001/api';
+const OUTPUT_FOLDER = path.join(__dirname, '../../../backend/outputs');
 
 // Timeout constants
 const GENERATION_TIMEOUT = 300000 // 5 minutes for generation
@@ -32,7 +31,7 @@ async function handlePodcastGeneration(_, config) {
     try {
         validateGenerationConfig(config)
         
-        log.info(`Starting podcast generation for file: ${config.fileId}`)
+        log.info(`Starting podcast generation for file: ${config.fileID}`)
         
         const response = await axios.post(
             `${API_BASE_URL}/generate`,
@@ -140,8 +139,8 @@ function validateGenerationConfig(config) {
     if (!config || typeof config !== 'object') {
         throw new Error('Invalid configuration provided')
     }
-    if (!config.fileId || typeof config.fileId !== 'string') {
-        throw new Error('Missing or invalid fileId')
+    if (!config.fileID || typeof config.fileID !== 'string') {
+        throw new Error('Missing or invalid fileID')
     }
 }
 

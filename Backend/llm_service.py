@@ -1,51 +1,83 @@
 import requests
-import pandas as pd
+import re
+import logging
 from typing import List
+import json
 
-OLLAMA_HOST = "http://localhost:11434"
+class OllamaLLMProvider:
+    def __init__(self, model_name: str = "llama3.1:8b"):
+        self.model_name = model_name
+        self.base_url = "http://localhost:11434"
+    
+    def get_available_models(self) -> List[str]:
+        try:
+            response = requests.get(f"{self.base_url}/api/tags")
+            if response.status_code == 200:
+                return [model['name'] for model in response.json()['models']]
+            return []
+        except Exception as e:
+            logging.error(f"Error fetching Ollama models: {e}")
+            return []
+    
+    def select_model_interactively(self) -> str:
+        models = self.get_available_models()
+        if not models:
+            print("No Ollama models found. Using default 'llama3'")
+            return "llama3"
+        print("\\nAvailable Ollama models:")
+        for i, model in enumerate(models, 1):
+            print(f"{i}. {model}")
+        while True:
+            try:
+                choice = int(input("\\nSelect model number: "))
+                if 1 <= choice <= len(models):
+                    return models[choice-1]
+                print("Invalid selection. Try again.")
+            except ValueError:
+                print("Please enter a number.")
+    
+    def generate_response(self, prompt: str, max_tokens: int = 4000) -> str:
+        headers = {'Content-Type': 'application/json'}
+        data = {
+            "model": self.model_name,
+            "prompt": prompt,
+            "stream": True,
+            "options": {
+                "temperature": 0.7,
+                "num_ctx": max_tokens
+            }
+        }
+        try:
+            response = requests.post(
+                f"{self.base_url}/api/generate",
+                headers=headers,
+                json=data,
+                stream=True,
+                timeout=300
+            )
+            response.raise_for_status()
+            full_text = ""
+            for line in response.iter_lines():
+                if line:
+                    partial = line.decode("utf-8").removeprefix("data: ").strip()
+                    if partial != "[DONE]":
+                        chunk = json.loads(partial)
+                        full_text += chunk.get("response", "")
+            return self._clean_response(full_text)
+        except Exception as e:
+            logging.error(f"Error calling Ollama: {e}")
+            return ""
 
-def generate_with_ollama(prompt: str, model: str = "llama3") -> str:
-    """Generate text using local Ollama model"""
-    try:
-        response = requests.post(
-            f"{OLLAMA_HOST}/api/generate",
-            json={
-                "model": model,
-                "prompt": prompt,
-                "stream": False
-            },
-            timeout=30
-        )
-    except requests.exceptions.RequestException as e:
-        raise Exception(f"Ollama request failed: {str(e)}. Is Ollama running?")
-    response.raise_for_status()
-    return response.json()["response"]
-
-def generate_podcast_script(text_chunks: List[str]) -> pd.DataFrame:
-    """Convert PDF text into podcast dialogue using Ollama"""
-    system_prompt = """
-    You are a podcast script generator. Convert the given text into a conversation between:
-    - Host (curious, asks questions)
-    - Expert (knowledgeable, provides details)
-    
-    Format each line strictly as: "SPEAKER: Dialogue"
-    Include natural pauses like [pause]. Keep responses under 3 sentences.
-    """
-    
-    script_lines = []
-    for chunk in text_chunks:
-        full_prompt = f"{system_prompt}\n\nTEXT TO CONVERT:\n{chunk}"
-        response = generate_with_ollama(full_prompt)
-        script_lines.extend(line for line in response.split('\n') if ':' in line)
-    
-    # Parse into DataFrame
-    data = []
-    for line in script_lines:
-        speaker, dialogue = line.split(':', 1)
-        data.append({
-            "Name": speaker.strip(),
-            "Dialogue": dialogue.strip(),
-            "Order": len(data) + 1
-        })
-    
-    return pd.DataFrame(data)
+    def _clean_response(self, text: str) -> str:
+        text = re.sub(r"<[^>]+>", "", text)
+        text = re.sub(r"\\[(?!Host)[^\\]]+\\]", "", text)
+        text = re.sub(r"Use a\\s+\\w+\\s+tone\\.?\\s*", "", text)
+        text = re.sub(r"The user wants this for.*?\\.", "", text)
+        text = re.sub(r"(?i)I need to generate.*?\\.", "", text)
+        text = re.sub(r"(?i)I should.*?\\.", "", text)
+        text = re.sub(r"(?i)I must.*?\\.", "", text)
+        text = re.sub(r"(?i)The tone needs to be.*?\\.", "", text)
+        text = re.sub(r"\\[Write.*?\\]", "", text)
+        text = re.sub(r"\\[Speaker.*?\\]", "", text)
+        text = re.sub(r"\\[.*?sentence.*?\\]", "", text)
+        return text.strip()

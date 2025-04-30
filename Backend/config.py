@@ -1,7 +1,7 @@
 import os
-from shared import load_dotenv
+# from shared import load_dotenv
 
-load_dotenv()
+# load_dotenv()
 
 class Config:
     # Flask Server Configuration
@@ -12,6 +12,7 @@ class Config:
     # File Handling
     UPLOAD_FOLDER = 'uploads'
     OUTPUT_FOLDER = 'outputs'
+    VOICE_MODELS_FOLDER = os.getenv('VOICE_MODELS_FOLDER', 'voice_models')
     MAX_CONTENT_LENGTH = 50 * 1024 * 1024  # 50MB
     ALLOWED_EXTENSIONS = {'pdf'}
     

@@ -1,40 +1,40 @@
-import { state } from '../store/store.js';
-import { showUploadView } from './uploadView.js';
-
 export function initResultsView() {
-    const container = document.getElementById('results-view');
-    
-    container.innerHTML = `
-        <div class="bg-white rounded-lg shadow p-6">
-            <h2 class="text-xl font-semibold mb-4">Your Podcast</h2>
-            <div class="mb-6">
-                <audio id="audio-player" controls class="w-full"></audio>
-            </div>
-            <div class="flex space-x-4">
-                <button id="download-btn" class="btn-primary">Download Podcast</button>
-                <button id="start-over-btn" class="btn-secondary">Start Over</button>
-            </div>
+    const resultsView = document.getElementById('results-view');
+    resultsView.innerHTML = `
+        <h2>Results</h2>
+        <div id="results-container">
+            <p>Generated audio and transcripts will appear here after processing.</p>
         </div>
     `;
 
-    document.getElementById('start-over-btn').addEventListener('click', () => {
-        resetState();
-        showUploadView();
-    });
+    window.displayResults = async () => {
+        const jobId = window.currentJobId;
+        if (!jobId) return;
 
-    document.getElementById('download-btn').addEventListener('click', () => {
-        if (state.generationJob?.filePath) {
-            window.podcastAPI.download(state.generationJob.jobId);
+        try {
+            const response = await fetch(`http://localhost:5001/status/${jobId}`);
+            const result = await response.json();
+            document.getElementById('results-container').innerText = JSON.stringify(result, null, 2);
+        } catch (err) {
+            document.getElementById('results-container').innerText = 'Failed to load results.';
         }
-    });
+    };
 }
+
 
 export function showResultsView() {
-    const audioPlayer = document.getElementById('audio-player');
-    if (state.generationJob?.filePath) {
-        audioPlayer.src = state.generationJob.filePath;
+    document.querySelectorAll('.view').forEach(view => {
+      view.hidden= true;
+    });
+  
+    const resultsView = document.getElementById('results-view');
+    if (resultsView) {
+      resultsView.hidden = false;
+  
+      if (typeof window.displayResults === 'function') {
+        window.displayResults();
+      }
+    } else {
+      console.error('Results view element not found!');
     }
-    
-    document.getElementById('progress-view').classList.add('hidden');
-    document.getElementById('results-view').classList.remove('hidden');
-}
+  }
