@@ -85,6 +85,10 @@ PODCAST STRUCTURE AND REQUIREMENTS:
     {host2}: The co-host who offers additional perspective and helps unpack complex ideas
     {guest_line}
 
+    SPEAKER EMOTIONAL ALIGNMENTS:
+    {speaker_tone_descriptions}
+
+
 5. Podcast Style Requirements:
    - Professional but conversational tone throughout
    - Natural dialogue that builds on previous statements
