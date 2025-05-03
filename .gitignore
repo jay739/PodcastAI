@@ -14,3 +14,4 @@ __pycache__/
 .env
 package-lock.json
 backend/voice_models/
+backend/venv-py311/

@@ -3,11 +3,11 @@ import re
 import logging
 from typing import Tuple, Optional, Dict, Any, List
 from pypdf import PdfReader
-import pymupdf
+import fitz
 
 def extract_text(pdf_path: str) -> Tuple[str, Dict]:
     try:
-        doc = pymupdf.open(pdf_path)
+        doc = fitz.open(pdf_path)
         text = "\n".join(page.get_text() for page in doc)
         metadata = {
             "title": doc.metadata.get("title", os.path.basename(pdf_path)),

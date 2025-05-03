@@ -137,9 +137,8 @@ class PodcastService:
 
         transcript, transcript_path = generator.generate_transcript(speakers_config)
         output_path = f"outputs/{fileID}.mp3"
-
-        synthesize_podcast_audio(parse_transcript(transcript_path), output_path, speakers_config)
-
+        tts_model = config.get("tts_model", "bark")
+        synthesize_podcast_audio(parse_transcript(transcript_path), output_path, speakers_config, tts_model=tts_model)
         return {
             "fileID": fileID,
             "transcript": transcript,

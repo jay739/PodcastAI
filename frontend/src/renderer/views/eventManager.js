@@ -2,7 +2,7 @@ import { state } from '../store/store.js';
 import { 
     showUploadView, 
     showAnalysisView,
-    showVoiceView,
+    initVoiceView,
     showProgressView,
     showResultsView
 } from './index.js';

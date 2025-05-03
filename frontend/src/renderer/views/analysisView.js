@@ -1,4 +1,5 @@
 import { state } from "../store/store.js";
+import { showUploadView } from "./uploadView.js";
 
 export function showAnalysisView() {
   document.querySelectorAll(".view").forEach((view) => {
@@ -19,11 +20,20 @@ export function initAnalysisView() {
   view.innerHTML = "";
 
   const fileID = state.currentFile?.id;
+
   if (!fileID) {
     view.innerHTML = `
       <div style="text-align: center; padding: 2rem; color: #b00; font-weight: bold;">
         ❗ No file uploaded yet.
+      </div>
+      <div style="text-align: center; margin-top: 2rem;">
+        <button id="back-button" style="background-color: #e5e7eb; color: #111827; border: none; padding: 0.6rem 1.5rem; border-radius: 6px; cursor: pointer;">
+          ⬅️ Back
+        </button>
       </div>`;
+    document.getElementById("back-button")?.addEventListener("click", () => {
+      showUploadView();
+    });
     return;
   }
 
@@ -32,13 +42,23 @@ export function initAnalysisView() {
     view.innerHTML = `
       <div style="text-align: center; padding: 2rem; color: #999;">
         🕵️ Analyzing PDF... Please wait.
+      </div>
+      <div style="text-align: center; margin-top: 2rem;">
+        <button id="back-button" style="background-color: #e5e7eb; color: #111827; border: none; padding: 0.6rem 1.5rem; border-radius: 6px; cursor: pointer;">
+          ⬅️ Back
+        </button>
       </div>`;
+    document.getElementById("back-button")?.addEventListener("click", () => {
+      showUploadView();
+    });
     return;
   }
 
   const { page_count, word_count, char_count, speakers, full_text } = analysis;
 
   view.innerHTML = `
+    <button id="back-button" class="back-button" style="margin-bottom: 1rem;">⬅️ Back</button>
+
     <div style="max-width: 800px; margin: 2rem auto; background: #fff; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
       <h2 style="text-align: center; color: #333;">🧠 PDF Analysis</h2>
 
@@ -63,6 +83,10 @@ export function initAnalysisView() {
       </div>
     </div>
   `;
+
+  document.getElementById("back-button")?.addEventListener("click", () => {
+    showUploadView();
+  });
 
   const continueButton = document.getElementById("continue-to-voice");
   if (continueButton) {

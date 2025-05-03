@@ -1,74 +1,27 @@
 import os
 import re
+import pandas as pd
 import torch
 import numpy as np
-import pandas as pd
-from pydub import AudioSegment
-from datetime import datetime
-from bark import generate_audio as bark_generate_audio, preload_models
-from bark.generation import SAMPLE_RATE
-from services.transcript_utils import parse_transcript
-import inspect
-import random
 from typing import Dict
+from datetime import datetime
+from pydub import AudioSegment
 
-# Device setup for MPS / CPU / CUDA
-device = torch.device("mps" if torch.backends.mps.is_available() else "cuda" if torch.cuda.is_available() else "cpu")
+from services.transcript_utils import parse_transcript
+from services.tts_bark import BarkTTSGenerator
+from services.tts_coqui import CoquiXTTSGenerator
+from services.tts_kokoro import KokoroTTSGenerator
 
-# Allow unsafe globals (needed for newer PyTorch)
-torch.serialization.add_safe_globals([
-    np.core.multiarray.scalar,
-    np.dtype,
-    np.dtypes.Float64DType
-])
+# Dispatcher for model selection
+def get_tts_generator(model: str):
+    if model == "xtts":
+        return CoquiXTTSGenerator()
+    elif model == "kokoro":
+        return KokoroTTSGenerator()
+    else:
+        return BarkTTSGenerator()  # default to Bark Small
 
-# Preload Bark models with device awareness
-preload_models(
-    text_use_gpu=(device.type != "cpu"),
-    coarse_use_gpu=(device.type != "cpu"),
-    fine_use_gpu=(device.type != "cpu"),
-    codec_use_gpu=(device.type != "cpu")
-)
-
-class BarkTTSGenerator:
-    def __init__(self):
-        self.voice_presets = {
-            "male_positive": ["v2/en_speaker_6", "v2/en_speaker_7"],
-            "male_serious": ["v2/en_speaker_2"],
-            "male_neutral": ["v2/en_speaker_4"],
-            "female_positive": ["v2/en_speaker_1", "v2/en_speaker_3"],
-            "female_skeptical": ["v2/en_speaker_5"],
-            "female_neutral": ["v2/en_speaker_8"]
-        }
-        self.speaker_voice_map = {}  # 🧠 Ensures consistent voice per speaker
-
-    def generate_segment(self, text: str, gender: str = "male", tone: str = "neutral", speaker_name: str = "unknown") -> AudioSegment:
-        key = f"{gender.lower()}_{tone.lower()}"
-
-        # 🔄 Choose a preset once per speaker
-        if speaker_name not in self.speaker_voice_map:
-            options = self.voice_presets.get(key, ["v2/en_speaker_9"])
-            chosen = random.choice(options)
-            self.speaker_voice_map[speaker_name] = chosen
-            print(f"🎙️ Assigned {chosen} to speaker '{speaker_name}' ({gender}, {tone})")
-
-        preset = self.speaker_voice_map[speaker_name]
-
-        with torch.no_grad():
-            with torch.autocast(device_type=device.type, dtype=torch.float16 if device.type == "mps" else torch.float32):
-                if "history_prompt" in inspect.signature(bark_generate_audio).parameters:
-                    audio_array = bark_generate_audio(text, history_prompt=preset)
-                else:
-                    audio_array = bark_generate_audio(text)
-
-        audio_int16 = (audio_array * 32767).astype(np.int16)
-        return AudioSegment(
-            audio_int16.tobytes(),
-            frame_rate=SAMPLE_RATE,
-            sample_width=2,
-            channels=1
-        )
-
+# Optional filter to clean system-like dialogue lines
 def remove_system_like_lines(df: pd.DataFrame) -> pd.DataFrame:
     patterns = [
         r"strictly adheres to", r"this transcript", r"this concludes",
@@ -80,11 +33,12 @@ def remove_system_like_lines(df: pd.DataFrame) -> pd.DataFrame:
     def is_unwanted(text): return any(re.search(pat, text.lower()) for pat in patterns)
     return df[~df["Dialogue"].apply(is_unwanted)].reset_index(drop=True)
 
-def synthesize_podcast_audio(script_df: pd.DataFrame, output_path: str, speakers_config: Dict[str, Dict[str, str]]) -> str:
-    tts = BarkTTSGenerator()
+# Main audio synthesis function
+def synthesize_podcast_audio(script_df: pd.DataFrame, output_path: str, speakers_config: Dict[str, Dict[str, str]], tts_model: str = "bark") -> str:
+    tts = get_tts_generator(tts_model)
     combined = AudioSegment.silent(duration=500)
 
-    # Load background music
+    # Load background music if present
     bg_music_path = "assets/bg_music.mp3"
     if os.path.exists(bg_music_path):
         raw_bg = AudioSegment.from_file(bg_music_path).low_pass_filter(2000) - 20
@@ -110,14 +64,12 @@ def synthesize_podcast_audio(script_df: pd.DataFrame, output_path: str, speakers
 
         combined += timestamp_audio + segment + AudioSegment.silent(duration=300)
 
-    # Loop background music to match combined audio length
+    # Match background music length and overlay
     loops = int(len(combined) / len(raw_bg)) + 1
     background = (raw_bg * loops)[:len(combined)]
-
-    # Overlay speech on music with ducking
     final_mix = background.overlay(combined, gain_during_overlay=-10)
 
-    # Export final audio
+    # Export result
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     final_mix.export(output_path, format="mp3", bitrate="192k")
     print(f"✅ Podcast saved: {output_path}")

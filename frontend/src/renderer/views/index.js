@@ -1,6 +1,6 @@
 import { initUploadView, showUploadView } from './uploadView.js';
 import { initAnalysisView, showAnalysisView } from './analysisView.js';
-import { initVoiceView, showVoiceView } from './voiceView.js';
+import { initVoiceView } from "./voice/initVoiceView.js";
 import { initProgressView, showProgressView } from './progressView.js';
 import { initResultsView, showResultsView } from './resultsView.js';
 
@@ -11,7 +11,6 @@ export async function initAllViews() {
   try {
     initUploadView();
     initAnalysisView();
-    initVoiceView();
     initProgressView();
     initResultsView();
 
@@ -25,7 +24,7 @@ export async function initAllViews() {
 export {
   showUploadView,
   showAnalysisView,
-  showVoiceView,
+  initVoiceView,
   showProgressView,
   showResultsView
 };

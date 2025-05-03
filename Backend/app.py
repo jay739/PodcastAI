@@ -3,7 +3,7 @@ from flask_cors import CORS
 import os
 import uuid
 import pypdf
-import pymupdf
+import fitz
 from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
 from routes.file_routes import file_blueprint
@@ -49,7 +49,7 @@ def debug_pdf(fileID):
     try:
         text_mupdf = ""
         try:
-            doc = pymupdf.open(file_path)
+            doc = fitz.open(file_path)
             for page in doc:
                 text_mupdf += page.get_text() + "\n"
             doc.close()

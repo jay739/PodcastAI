@@ -20,3 +20,17 @@ def parse_transcript(transcript_path: str) -> pd.DataFrame:
                     dialogue_data.append({"Name": speaker, "Dialogue": dialogue})
 
     return pd.DataFrame(dialogue_data)
+
+def save_arc_transcript(df: pd.DataFrame, job_id: str):
+    arc_lines = []
+    for i, row in df.iterrows():
+        entry = {
+            "timestamp": f"[{(i * 30) // 60:02d}:{(i * 30) % 60:02d}]",
+            "speaker": row["Name"],
+            "text": row["Dialogue"]
+        }
+        arc_lines.append(entry)
+
+    out_path = os.path.join("outputs", f"{job_id}_arc.json")
+    with open(out_path, "w") as f:
+        json.dump(arc_lines, f, indent=2)
