@@ -7,6 +7,13 @@ body {
   transition: background 0.3s ease, color 0.3s ease;
 }
 
+.step.active-step {
+  background-color: #4f46e5;
+  color: white;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+}
+
 .view {
   padding: 2rem;
   max-width: 960px;
@@ -40,6 +47,101 @@ input:focus, select:focus {
   outline: none;
   border-color: #4f46e5;
   background: #d9dffe;
+}
+.analysis-container {
+  max-width: 800px;
+  margin: 2rem auto;
+  background: var(--card-bg);
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
+
+.analysis-details p {
+  margin: 0.5rem 0;
+}
+
+.text-preview h3 {
+  margin-bottom: 0.5rem;
+  color: #555;
+}
+
+.preview-box {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid #ccc;
+  padding: 1rem;
+  border-radius: 6px;
+  background: #fafafa;
+  font-family: monospace;
+}
+
+.primary-btn {
+  padding: 0.75rem 1.5rem;
+  background-color: #28a745;
+  color: white;
+  font-weight: bold;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.back-button {
+  margin-bottom: 1rem;
+  padding: 0.5rem 1.2rem;
+  background: #f3f4f6;
+  color: #111;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.centered {
+  text-align: center;
+}
+
+.error-message {
+  color: #b91c1c;
+  font-weight: bold;
+}
+.progress-container {
+  max-width: 600px;
+  margin: 2rem auto;
+  padding: 2rem;
+  border-radius: 12px;
+  background: var(--card-bg);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  text-align: center;
+}
+
+.progress-status {
+  margin-top: 1rem;
+  font-weight: bold;
+  color: #444;
+}
+
+.pdf-stats {
+  margin-top: 2rem;
+  padding: 1rem;
+  background: #f9f9f9;
+  border-radius: 8px;
+  text-align: left;
+}
+
+.info-message {
+  color: #555;
+}
+
+.drop-zone {
+  border: 2px dashed #94a3b8;
+  padding: 2rem;
+  border-radius: 10px;
+  text-align: center;
+  background-color: #f9fafb;
+  color: #334155;
+  transition: background 0.3s ease;
+  cursor: pointer;
+  margin-bottom: 1.5rem;
 }
 
 button {

@@ -1,5 +1,6 @@
 import { state } from "../store/store.js";
 import { showUploadView } from "./uploadView.js";
+import { registerViewTransition } from "./common/backNavigation.js";
 
 export function showAnalysisView() {
   document.querySelectorAll(".view").forEach((view) => {
@@ -23,13 +24,11 @@ export function initAnalysisView() {
 
   if (!fileID) {
     view.innerHTML = `
-      <div style="text-align: center; padding: 2rem; color: #b00; font-weight: bold;">
+      <div class="error-message centered">
         ❗ No file uploaded yet.
       </div>
-      <div style="text-align: center; margin-top: 2rem;">
-        <button id="back-button" style="background-color: #e5e7eb; color: #111827; border: none; padding: 0.6rem 1.5rem; border-radius: 6px; cursor: pointer;">
-          ⬅️ Back
-        </button>
+      <div class="centered" style="margin-top: 2rem;">
+        <button id="back-button" class="back-button">⬅️ Back</button>
       </div>`;
     document.getElementById("back-button")?.addEventListener("click", () => {
       showUploadView();
@@ -40,13 +39,11 @@ export function initAnalysisView() {
   const analysis = state.analysisResults;
   if (!analysis) {
     view.innerHTML = `
-      <div style="text-align: center; padding: 2rem; color: #999;">
+      <div class="info-message centered">
         🕵️ Analyzing PDF... Please wait.
       </div>
-      <div style="text-align: center; margin-top: 2rem;">
-        <button id="back-button" style="background-color: #e5e7eb; color: #111827; border: none; padding: 0.6rem 1.5rem; border-radius: 6px; cursor: pointer;">
-          ⬅️ Back
-        </button>
+      <div class="centered" style="margin-top: 2rem;">
+        <button id="back-button" class="back-button">⬅️ Back</button>
       </div>`;
     document.getElementById("back-button")?.addEventListener("click", () => {
       showUploadView();
@@ -57,29 +54,27 @@ export function initAnalysisView() {
   const { page_count, word_count, char_count, speakers, full_text } = analysis;
 
   view.innerHTML = `
-    <button id="back-button" class="back-button" style="margin-bottom: 1rem;">⬅️ Back</button>
+    <button id="back-button" class="back-button">⬅️ Back</button>
 
-    <div style="max-width: 800px; margin: 2rem auto; background: #fff; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
-      <h2 style="text-align: center; color: #333;">🧠 PDF Analysis</h2>
+    <div class="analysis-container">
+      <h2 class="title">🧠 PDF Analysis</h2>
 
-      <div style="margin-top: 1.5rem; font-size: 1rem;">
+      <div class="analysis-details">
         <p><strong>📄 Page Count:</strong> ${page_count}</p>
         <p><strong>📝 Word Count:</strong> ${word_count}</p>
         <p><strong>🔠 Character Count:</strong> ${char_count}</p>
         <p><strong>🗣️ Speakers Detected:</strong> ${speakers.length > 0 ? speakers.join(", ") : "None"}</p>
       </div>
 
-      <div style="margin-top: 2rem;">
-        <h3 style="margin-bottom: 0.5rem; color: #555;">📚 Text Preview</h3>
-        <div style="max-height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 1rem; border-radius: 6px; background: #fafafa; font-family: monospace;">
+      <div class="text-preview">
+        <h3>📚 Text Preview</h3>
+        <div class="preview-box">
           ${full_text?.slice(0, 1500) || "No preview available..."}${full_text && full_text.length > 1500 ? "..." : ""}
         </div>
       </div>
 
-      <div style="text-align: center; margin-top: 2rem;">
-        <button id="continue-to-voice" style="padding: 0.75rem 1.5rem; background-color: #28a745; color: white; font-weight: bold; border: none; border-radius: 8px; cursor: pointer;">
-          ➡️ Continue to Voice Setup
-        </button>
+      <div class="centered" style="margin-top: 2rem;">
+        <button id="continue-to-voice" class="primary-btn">➡️ Continue to Voice Setup</button>
       </div>
     </div>
   `;
@@ -88,12 +83,12 @@ export function initAnalysisView() {
     showUploadView();
   });
 
-  const continueButton = document.getElementById("continue-to-voice");
-  if (continueButton) {
-    continueButton.addEventListener("click", () => {
-      import("./voiceView.js").then(({ showVoiceView }) => {
-        showVoiceView();
-      });
-    });
-  }
+  document.getElementById("continue-to-voice")?.addEventListener("click", async () => {
+    const { initVoiceView } = await import("./voice/initVoiceView.js");
+    const { showVoiceView } = await import("./voice/index.js");
+    initVoiceView();
+    showVoiceView();
+  });
+
+  registerViewTransition("analysis-view");
 }

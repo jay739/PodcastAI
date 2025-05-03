@@ -3,10 +3,11 @@ import { handleModelSelection } from "./modelSelector.js";
 import { renderSpeakerTable } from "./tableGenerator.js";
 import { setupEventHandlers } from "./eventHandlers.js";
 import { renderVoiceViewLayout } from "./layout.js";
+import { state } from "../../store/store.js";  
 
 export function initVoiceView() {
   const voiceView = document.getElementById("voice-view");
-  const fileID = window.state?.currentFile?.id;
+  const fileID = state.currentFile?.id;
 
   if (!fileID) {
     voiceView.innerHTML = `
@@ -26,7 +27,9 @@ export function initVoiceView() {
   handleModelSelection();
 
   // Set up dynamic speaker table (instead of block fields)
-  renderSpeakerTable(document.getElementById("speaker-table-container"));
+  const container = document.getElementById("speaker-table-container");
+  if (container) renderSpeakerTable(container);
+
   // Handle generate, back, sample preview buttons
   setupEventHandlers();
 }

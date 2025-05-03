@@ -1,30 +1,72 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PodcastAI</title>
-    <meta http-equiv="Content-Security-Policy"
-      content="default-src 'self';
-               connect-src 'self' http://localhost:5001;
-               script-src 'self';
-               style-src 'self' 'unsafe-inline';">
-    <link rel="stylesheet" href="../css/styles.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PodcastAI</title>
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self';
+                 connect-src 'self' http://localhost:5001;
+                 script-src 'self';
+                 style-src 'self' 'unsafe-inline';">
+  <link rel="stylesheet" href="../css/styles.css">
 </head>
 <body>
-    <script type="module" src="./renderer/main.js"></script>
-    <div id="loading-overlay">
-        <div class="spinner"></div>
-        <p id="loading-text">Loading application...</p>
-        <div id="error-message" class="error-message" hidden></div>
+
+  <!-- Main JavaScript Entry -->
+  <script type="module" src="./renderer/main.js"></script>
+
+  <!-- Loading Overlay -->
+  <div id="loading-overlay">
+    <div class="spinner"></div>
+    <p id="loading-text">Loading application...</p>
+    <div id="error-message" class="error-message" hidden></div>
+  </div>
+
+  <!-- Persistent Header (Visible After Welcome) -->
+  <div id="persistent-header" hidden>
+    <div id="header-top" style="display: flex; justify-content: space-between; align-items: center; padding: 1rem;">
+      <div id="project-title" style="font-size: 1.5rem; font-weight: bold;">🎧 PodcastAI Studio</div>
+      <div>
+        <select id="theme-toggle" style="margin-right: 1rem;">
+          <option value="light">🌞 Light</option>
+          <option value="dark">🌙 Dark</option>
+        </select>
+        <button id="login-button">👤 Login</button>
+      </div>
     </div>
 
-    <div id="app-container">
-        <div id="upload-view" class="view" ></div>
-        <div id="analysis-view" class="view" hidden></div>
-        <div id="voice-view" class="view" hidden></div>
-        <div id="progress-view" class="view" hidden></div>
-        <div id="results-view" class="view" hidden></div>
+    <div id="step-tracker" style="display: flex; justify-content: center; gap: 2rem; margin-bottom: 1rem;">
+      <span class="step" id="step1">1️⃣ Upload</span>
+      <span class="step" id="step2">2️⃣ Analyze</span>
+      <span class="step" id="step3">3️⃣ Voices</span>
+      <span class="step" id="step4">4️⃣ Results</span>
     </div>
+  </div>
+
+  <!-- Welcome Screen -->
+  <div id="welcome-screen" class="view">
+    <div class="welcome-content" style="max-width: 700px; margin: 4rem auto; padding: 2rem; text-align: center; border-radius: 12px; background: #f9f9f9;">
+      <h1 style="font-size: 2.5rem; margin-bottom: 1rem;">Welcome to PodcastAI Studio</h1>
+      <p style="font-size: 1.2rem; margin-bottom: 1rem;">This tool helps you convert any research paper or story into an engaging podcast using AI voices.</p>
+      <ul style="text-align: left; max-width: 400px; margin: 0 auto 2rem; font-size: 1.1rem;">
+        <li>📤 Upload a PDF</li>
+        <li>🧠 Analyze and extract content</li>
+        <li>🗣️ Choose voices and tones</li>
+        <li>🎧 Generate the final podcast</li>
+      </ul>
+      <button id="start-button" class="primary-btn" style="padding: 0.75rem 1.5rem; font-size: 1.1rem; background-color: #4f46e5; color: white; border: none; border-radius: 8px; cursor: pointer;">🚀 Let’s Get Started</button>
+    </div>
+  </div>
+
+  <!-- App Views Container -->
+  <div id="app-container" hidden>
+    <div id="upload-view" class="view" hidden></div>
+    <div id="analysis-view" class="view" hidden></div>
+    <div id="voice-view" class="view" hidden></div>
+    <div id="progress-view" class="view" hidden></div>
+    <div id="results-view" class="view" hidden></div>
+  </div>
+
 </body>
 </html>

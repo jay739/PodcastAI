@@ -1,8 +1,15 @@
-// tableGenerator.js
-
 import { state } from "../../store/store.js";
 
 export function renderSpeakerTable(container) {
+  if (!state.speakers) state.speakers = [];
+
+  // Ensure a valid host exists in current speakers
+  const currentHost = state.voiceSettings?.host || "";
+  const hostNames = state.speakers.map((sp) => sp.name);
+  if (!hostNames.includes(currentHost)) {
+    state.voiceSettings.host = "";
+  }
+
   container.innerHTML = `
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
       <label style="font-weight: bold;">Select Host:</label>
@@ -10,9 +17,9 @@ export function renderSpeakerTable(container) {
         <option value="">-- Select Host --</option>
         ${state.speakers
           .map(
-            (sp, i) =>
+            (sp) =>
               `<option value="${sp.name}" ${
-                state.voiceSettings.host === sp.name ? "selected" : ""
+                sp.name === state.voiceSettings.host ? "selected" : ""
               }>${sp.name}</option>`
           )
           .join("")}
@@ -62,27 +69,14 @@ export function renderSpeakerTable(container) {
           .join("")}
       </tbody>
     </table>
+
+    <div style="text-align: right;">
+      <button id="add-row-btn" style="padding: 0.5rem 1rem; border-radius: 6px; background: #4f46e5; color: white; border: none;">➕ Add Row</button>
+    </div>
   `;
 
-  // Add event listeners to update host dropdown dynamically
-  state.speakers.forEach((_, i) => {
-    const input = document.getElementById(`table-name-${i}`);
-    input?.addEventListener("input", () => {
-      const hostSelect = document.getElementById("host-selector");
-      const previous = hostSelect.value;
-
-      hostSelect.innerHTML = `<option value="">-- Select Host --</option>`;
-      state.speakers.forEach((sp, j) => {
-        const nameVal = document.getElementById(`table-name-${j}`)?.value || "";
-        const selected = nameVal === previous ? "selected" : "";
-        hostSelect.innerHTML += `<option value="${nameVal}" ${selected}>${nameVal}</option>`;
-      });
-    });
-  });
-
-  // Remove row buttons
-  const removeBtns = container.querySelectorAll(".remove-row-btn");
-  removeBtns.forEach((btn) => {
+  // Re-bind remove row buttons
+  container.querySelectorAll(".remove-row-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       const index = parseInt(btn.dataset.index);
       if (!isNaN(index)) {
@@ -90,5 +84,36 @@ export function renderSpeakerTable(container) {
         renderSpeakerTable(container);
       }
     });
+  });
+
+  // Re-bind add row button
+  document.getElementById("add-row-btn")?.addEventListener("click", () => {
+    if (state.speakers.length >= 5) {
+      alert("⚠️ Max 5 speakers allowed.");
+      return;
+    }
+    state.speakers.push({ name: "", gender: "neutral", tone: "neutral" });
+    renderSpeakerTable(container);
+  });
+
+  // Update host options when name inputs change
+  state.speakers.forEach((_, i) => {
+    const input = document.getElementById(`table-name-${i}`);
+    input?.addEventListener("input", () => {
+      const previous = document.getElementById("host-selector")?.value || "";
+      const hostSelector = document.getElementById("host-selector");
+
+      hostSelector.innerHTML = `<option value="">-- Select Host --</option>`;
+      state.speakers.forEach((sp, j) => {
+        const val = document.getElementById(`table-name-${j}`)?.value || "";
+        const selected = val === previous ? "selected" : "";
+        hostSelector.innerHTML += `<option value="${val}" ${selected}>${val}</option>`;
+      });
+    });
+  });
+
+  // Save selected host
+  document.getElementById("host-selector")?.addEventListener("change", (e) => {
+    state.voiceSettings.host = e.target.value;
   });
 }
