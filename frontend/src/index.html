@@ -28,25 +28,25 @@
     <div id="header-top" style="display: flex; justify-content: space-between; align-items: center; padding: 1rem;">
       <div id="project-title" style="font-size: 1.5rem; font-weight: bold;">🎧 PodcastAI Studio</div>
       <div>
-        <select id="theme-toggle" style="margin-right: 1rem;">
-          <option value="light">🌞 Light</option>
-          <option value="dark">🌙 Dark</option>
-        </select>
-        <button id="login-button">👤 Login</button>
+        <!-- Icon button for theme toggle -->
+        <button id="theme-toggle" style="margin-right: 1rem; background: none; border: none; cursor: pointer;" title="Toggle theme">🌞</button>
+        <!-- Icon button for login -->
+        <button id="login-button" style="background: none; border: none; cursor: pointer;" title="Login">👤</button>
       </div>
-    </div>
+    </div>    
+  </div>
 
-    <div id="step-tracker" style="display: flex; justify-content: center; gap: 2rem; margin-bottom: 1rem;">
+    <div id="step-tracker" style="display: none; justify-content: center; gap: 2rem; margin-bottom: 1rem;">
       <span class="step" id="step1">1️⃣ Upload</span>
       <span class="step" id="step2">2️⃣ Analyze</span>
       <span class="step" id="step3">3️⃣ Voices</span>
       <span class="step" id="step4">4️⃣ Results</span>
     </div>
-  </div>
+    </div>
 
   <!-- Welcome Screen -->
   <div id="welcome-screen" class="view">
-    <div class="welcome-content" style="max-width: 700px; margin: 4rem auto; padding: 2rem; text-align: center; border-radius: 12px; background: #f9f9f9;">
+    <div class="welcome-content" style="max-width: 700px; margin: 4rem auto; padding: 2rem; text-align: center; border-radius: 12px;">
       <h1 style="font-size: 2.5rem; margin-bottom: 1rem;">Welcome to PodcastAI Studio</h1>
       <p style="font-size: 1.2rem; margin-bottom: 1rem;">This tool helps you convert any research paper or story into an engaging podcast using AI voices.</p>
       <ul style="text-align: left; max-width: 400px; margin: 0 auto 2rem; font-size: 1.1rem;">

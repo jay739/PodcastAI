@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, send_file
 from services.podcast_service import podcast_service
 from datetime import datetime, timedelta
 import os
@@ -35,11 +35,19 @@ def generate_podcast():
         data = request.get_json(force=True)
         fileID = data['fileID']
         speakers = data.get('speakers', [])
+        normalized_speakers = [
+            {
+                "name": s["name"].strip().lower(),
+                "gender": s.get("gender", "male"),
+                "tone": s.get("tone", "neutral")
+            }
+            for s in speakers if "name" in s
+        ]
         config = {
             "title": data.get("title", "Generated Podcast"),
-            "hosts": [s["name"] for s in speakers[:2]],
-            "speakers": speakers,
-            "guest": speakers[2]["name"] if len(speakers) > 2 else None,
+            "hosts": [s["name"] for s in normalized_speakers[:2]],
+            "speakers": normalized_speakers,
+            "guest": normalized_speakers[2]["name"] if len(normalized_speakers) > 2 else None,
             "tts_model": data.get("tts_model", "bark")
         }
 

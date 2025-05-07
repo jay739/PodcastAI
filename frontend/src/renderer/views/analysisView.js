@@ -10,6 +10,12 @@ export function showAnalysisView() {
   const analysisView = document.getElementById("analysis-view");
   if (analysisView) {
     analysisView.hidden = false;
+    document.querySelectorAll("#step-tracker .step").forEach((el) => {
+      el.style.color = "#6b7280";
+      el.style.fontWeight = "normal";
+    });
+    document.getElementById("step2").style.color = "#4f46e5";
+    document.getElementById("step2").style.fontWeight = "bold";
     initAnalysisView();
   } else {
     console.error("Analysis view element not found!");

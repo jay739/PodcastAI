@@ -6,6 +6,9 @@ import {
   setupHeaderControls
 } from './views/common/layout.js';
 
+document.addEventListener("dragover", (e) => e.preventDefault());
+document.addEventListener("drop", (e) => e.preventDefault());
+
 document.addEventListener('DOMContentLoaded', async () => {
   const loadingOverlay = document.getElementById('loading-overlay');
   const errorEl = document.getElementById('error-message');

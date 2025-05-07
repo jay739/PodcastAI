@@ -56,6 +56,12 @@ export function showProgressView(stats = null) {
   const progressView = document.getElementById("progress-view");
   if (progressView) {
     progressView.hidden = false;
+    document.querySelectorAll("#step-tracker .step").forEach((el) => {
+      el.style.color = "#6b7280";
+      el.style.fontWeight = "normal";
+    });
+    document.getElementById("step3").style.color = "#4f46e5";
+    document.getElementById("step3").style.fontWeight = "bold";
     initProgressView(stats);
   } else {
     console.error("Progress view element not found!");

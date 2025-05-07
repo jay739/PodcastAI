@@ -1,4 +1,3 @@
-// views/common/backNavigation.js
 
 const viewHistory = []; // stack to track previous views
 

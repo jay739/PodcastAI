@@ -72,11 +72,19 @@ export function initUploadView() {
     }
   });
 
+  dropZone.addEventListener("click", async () => {
+    const filePath = await podcastAPI.files.select();
+    if (filePath) {
+      await handleUpload(filePath);
+    }
+  });  
+
   dropZone.addEventListener("dragover", (e) => {
     e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
     dropZone.style.background = "#e0e7ff";
   });
-
+  
   dropZone.addEventListener("dragleave", () => {
     dropZone.style.background = "#f9fafb";
   });
@@ -111,6 +119,12 @@ export function showUploadView() {
   const uploadView = document.getElementById("upload-view");
   if (uploadView) {
     uploadView.hidden = false;
+    document.querySelectorAll("#step-tracker .step").forEach((el) => {
+      el.style.color = "#6b7280";
+      el.style.fontWeight = "normal";
+    });
+    document.getElementById("step1").style.color = "#4f46e5";
+    document.getElementById("step1").style.fontWeight = "bold";
     initUploadView();
   } else {
     console.error("Upload view element not found!");

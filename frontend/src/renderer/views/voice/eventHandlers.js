@@ -1,18 +1,17 @@
-// eventHandlers.js
-
 import { showProgressView } from "../progressView.js";
 import { podcastAPI } from "../../api/apiToggle.js";
 import { state } from "../../store/store.js";
 import { renderSpeakerTable } from "./tableGenerator.js";
+import { loadTranscriptPreview } from "./transcriptPreview.js";
 
-let currentMode = "table"; // default view mode
+let currentMode = "table";
 
 export function setupEventHandlers() {
   const status = document.getElementById("voice-status");
   const toggleBtn = document.getElementById("toggle-view-mode");
   const tableContainer = document.getElementById("speaker-table-container");
 
-  // Handle toggle between table/form view
+  // Toggle view mode
   if (toggleBtn) {
     toggleBtn.addEventListener("click", () => {
       currentMode = currentMode === "table" ? "form" : "table";
@@ -20,7 +19,7 @@ export function setupEventHandlers() {
     });
   }
 
-  // Add Speaker Row
+  // Add speaker
   document.getElementById("add-speaker")?.addEventListener("click", () => {
     if (state.speakers.length >= 5) {
       status.innerText = "⚠️ Maximum of 5 speakers allowed.";
@@ -30,7 +29,7 @@ export function setupEventHandlers() {
     renderSpeakerTable(tableContainer);
   });
 
-  // Remove Speaker Row (delegated from tableGenerator via buttons)
+  // Remove speaker
   document.addEventListener("click", (e) => {
     if (e.target?.classList?.contains("remove-speaker-btn")) {
       const index = parseInt(e.target.dataset.index, 10);
@@ -41,7 +40,7 @@ export function setupEventHandlers() {
     }
   });
 
-  // Generate Podcast
+  // Generate podcast
   document.getElementById("generate-voice")?.addEventListener("click", async () => {
     const speakerCount = state.speakers.length;
     const newSpeakers = [];
@@ -53,12 +52,11 @@ export function setupEventHandlers() {
       const toneEl = document.getElementById(`table-tone-${i}`);
       const warnId = `warn-${i}`;
 
+      document.getElementById(warnId)?.remove();
+
       const name = nameEl?.value?.trim();
       const gender = genderEl?.value;
       const tone = toneEl?.value;
-
-      // Clear old warnings
-      document.getElementById(warnId)?.remove();
 
       if (!name) {
         const warn = document.createElement("div");
@@ -70,6 +68,7 @@ export function setupEventHandlers() {
         valid = false;
         continue;
       }
+
       newSpeakers.push({ name, gender, tone });
     }
 
@@ -87,23 +86,36 @@ export function setupEventHandlers() {
     const model = document.getElementById("tts-model-select")?.value || "bark";
 
     try {
-      status.innerText = "⏳ Generating podcast...";
+      // Add spinner
+      status.innerHTML = `<span class="spinner"></span> 🧠 Synthesizing audio...`;
+
       const result = await podcastAPI.podcast.generate({
         fileID: state.currentFile.id,
         speakers: newSpeakers,
         host,
         tts_model: model
       });
-      status.innerText = `✅ Generation started (Job ID: ${result.jobId})`;
-      window.currentJobId = result.jobId;
-      showProgressView();
+
+      status.innerHTML = "✅ Audio generated! Loading transcript...";
+
+      setTimeout(async () => {
+        const preview = document.getElementById("transcript-preview");
+        preview.style.display = "block";
+
+        await loadTranscriptPreview();
+
+        // Scroll to transcript section
+        preview.scrollIntoView({ behavior: "smooth", block: "start" });
+
+        status.innerHTML += "<br>📖 Transcript loaded below.";
+      }, 1500);
     } catch (err) {
       console.error("Error during generation:", err);
-      status.innerText = "❌ Generation failed.";
+      status.innerText = "❌ Generation failed. Check console.";
     }
   });
 
-  // Back Button
+  // Back
   document.getElementById("back-button")?.addEventListener("click", () => {
     import("./uploadView.js").then(({ showUploadView }) => showUploadView());
   });

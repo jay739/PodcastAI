@@ -1,4 +1,3 @@
-// src/renderer/views/voice/toggleView.js
 import { renderForm } from "./fieldGenerator.js";
 import { renderTable } from "./tableGenerator.js";
 import { state } from "../../store/store.js";
@@ -19,7 +18,6 @@ export function setupViewToggle() {
     }
   });
 
-  // Default render on init
   toggleBtn.innerText = state.useTableView ? "🔁 Switch to Form View" : "🔁 Switch to Table View";
   state.useTableView ? renderTable() : renderForm();
 }

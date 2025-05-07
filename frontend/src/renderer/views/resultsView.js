@@ -91,6 +91,13 @@ export function showResultsView() {
   const resultsView = document.getElementById("results-view");
   if (resultsView) {
     resultsView.hidden = false;
+    document.querySelectorAll("#step-tracker .step").forEach((el) => {
+      el.style.color = "#6b7280";
+      el.style.fontWeight = "normal";
+    });
+    document.getElementById("step4").style.color = "#4f46e5";
+    document.getElementById("step4").style.fontWeight = "bold";
+
     initResultsView();
   } else {
     console.error("Results view element not found!");
