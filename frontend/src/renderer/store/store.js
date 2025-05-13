@@ -4,6 +4,8 @@ export const state = {
     currentFile: null,
     analysisResults: null,
     voiceSettings: {},
+    speakers: [],
+    transcriptText: "",
     generationJob: null,
     progress: {
         current: 0,
@@ -11,27 +13,15 @@ export const state = {
         message: '',
         isComplete: false
     },
+    user: null,
+    listeners: new Set(),
 
-    reset() {
-        this.currentFile = null;
-        this.analysisResults = null;
-        this.voiceSettings = {};
-        this.generationJob = null;
-        this.progress = {
-            current: 0,
-            max: 100,
-            message: '',
-            isComplete: false
-        };
-        updateProgress(0, '');
-    },
-
-    setFile(file) {
+    setFile(fileObj) {
         this.currentFile = {
-            name: file.name,
-            size: file.size,
-            path: file.path,
-            id: file.id || null
+            name: fileObj.name,
+            size: fileObj.size,
+            path: fileObj.path,
+            id: fileObj.id || null
         };
     },
 
@@ -42,12 +32,27 @@ export const state = {
             char_count: results.char_count || 0,
             speakers: results.speakers || [],
             full_text: results.full_text || '',
-            chunks: results.chunks || []
+            chunks: results.chunks || [],
+            top_keywords: results.top_keywords || [],
+            keyword_counts: results.keyword_counts || [],
+            sentiment: results.sentiment || {},
+            readability: results.readability || {},
+            entities: results.entities || [],
+            diversity: results.diversity,
+            topics: results.topics || {}
         };
     },
 
     updateVoiceSettings(settings) {
         this.voiceSettings = { ...settings };
+    },
+
+    setSpeakers(speakers) {
+        this.speakers = [...speakers];
+    },
+
+    setTranscript(text) {
+        this.transcriptText = text || "";
     },
 
     setGenerationJob(job) {
@@ -64,6 +69,48 @@ export const state = {
         this.progress.message = message;
         this.progress.isComplete = percentage >= 100;
         updateProgress(percentage, message);
+    },
+
+    reset() {
+        this.currentFile = null;
+        this.analysisResults = null;
+        this.voiceSettings = {};
+        this.speakers = [];
+        this.transcriptText = "";
+        this.generationJob = null;
+        this.progress = {
+            current: 0,
+            max: 100,
+            message: '',
+            isComplete: false
+        };
+        updateProgress(0, '');
+    },
+
+    setUser(user) {
+        this.user = user;
+        if (user && user.token) {
+            localStorage.setItem('token', user.token);
+        }
+        this.notifyListeners();
+    },
+
+    getUser() {
+        return this.user;
+    },
+
+    isAuthenticated() {
+        return !!this.user;
+    },
+
+    logout() {
+        this.user = null;
+        localStorage.removeItem('token');
+        this.notifyListeners();
+    },
+
+    notifyListeners() {
+        this.listeners.forEach(listener => listener());
     }
 };
 

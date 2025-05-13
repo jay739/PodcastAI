@@ -25,6 +25,9 @@ function setupPodcastHandlers() {
     
     // Cleanup handler
     ipcMain.handle('podcast:cleanup', handlePodcastCleanup)
+
+    // Preview voice handler
+    ipcMain.handle('podcast:previewVoice', handlePodcastPreviewVoice)
 }
 
 async function handlePodcastGeneration(_, config) {
@@ -131,6 +134,16 @@ async function handlePodcastCleanup(_, jobId) {
     } catch (error) {
         log.error('Cleanup error:', error)
         return { success: false }
+    }
+}
+
+async function handlePodcastPreviewVoice(_, config) {
+    try {
+        const response = await axios.post(`${API_BASE_URL}/preview-voice`, config);
+        return response.data;
+    } catch (error) {
+        console.error('Voice preview failed:', error);
+        throw error;
     }
 }
 

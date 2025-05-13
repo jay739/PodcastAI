@@ -10,6 +10,12 @@ contextBridge.exposeInMainWorld('podcastAPI', {
   generate: (config) => ipcRenderer.invoke('podcast:generate', config),
   download: (job_id) => ipcRenderer.invoke('podcast:download', job_id),
   },
+  auth: {
+    login: (credentials) => ipcRenderer.invoke('login', credentials),
+    signup: (userData) => ipcRenderer.invoke('signup', userData),
+    logout: () => ipcRenderer.invoke('logout'),
+    getCurrentUser: () => ipcRenderer.invoke('get-current-user')
+  },
   on:{
     progress: (callback) => {
     ipcRenderer.on('podcast:progress', (_, progress) => callback(progress));

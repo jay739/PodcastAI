@@ -4,7 +4,7 @@
   "main": "src/main/main.js",
   "scripts": {
     "start": "electron .",
-    "dev": "concurrently \"npm run start\" \"cd backend && python app.py\"",
+    "dev": "concurrently \"npm run start\" \"cd ../backend && python app.py\"",
     "install-python-deps": "pip install -r backend/requirements.txt",
     "postinstall": "electron-rebuild",
     "pack": "electron-builder --dir",
@@ -31,11 +31,15 @@
     "jest": "^29.7.0"
   },
   "dependencies": {
+    "chart.js": "^3.9.1",
     "dotenv": "^16.4.1",
     "duckdb": "^1.2.0",
     "electron-log": "^5.3.3",
     "electron-updater": "^6.1.7",
-    "fs-extra": "^11.3.0"
+    "fs-extra": "^11.3.0",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.0",
+    "sqlite3": "^5.1.7"
   },
   "build": {
     "appId": "com.example.podcastgenerator",

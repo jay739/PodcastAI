@@ -1,30 +1,190 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PodcastAI</title>
-    <meta http-equiv="Content-Security-Policy"
-      content="default-src 'self';
-               connect-src 'self' http://localhost:5001;
-               script-src 'self';
-               style-src 'self' 'unsafe-inline';">
-    <link rel="stylesheet" href="../css/styles.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PodcastAI</title>
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self';
+                 connect-src 'self' http://localhost:5001;
+                 script-src 'self';
+                 style-src 'self' 'unsafe-inline';">
+  <link rel="stylesheet" href="../css/styles.css">
+  <link rel="stylesheet" href="../src/renderer/styles/analysis.css">
 </head>
 <body>
-    <script type="module" src="./renderer/main.js"></script>
-    <div id="loading-overlay">
-        <div class="spinner"></div>
-        <p id="loading-text">Loading application...</p>
-        <div id="error-message" class="error-message" hidden></div>
+
+  <!-- Main JavaScript Entry -->
+  <script type="module" src="./renderer/main.js"></script>
+  <script src="./chart.min.js"></script>
+  <!-- Loading Overlay -->
+  <div id="loading-overlay">
+    <div class="spinner"></div>
+    <p id="loading-text">Loading application...</p>
+    <div id="error-message" class="error-message" hidden></div>
+  </div>
+
+  <!-- Persistent Header (Visible After Welcome) -->
+  <div id="persistent-header" hidden>
+    <div id="header-top" style="display: flex; justify-content: space-between; align-items: center; padding: 1rem;">
+      <div id="project-title" style="font-size: 1.5rem; font-weight: bold;">🎧 PodcastAI Studio</div>
+      <div style="display: flex; align-items: center; gap: 1rem;">
+        <!-- Icon button for theme toggle -->
+        <button id="theme-toggle" style="background: none; border: none; cursor: pointer;" title="Toggle theme">🌞</button>
+        <!-- User section -->
+        <div class="user-section" style="position: relative;">
+          <button id="login-button" style="background: none; border: none; cursor: pointer;" title="User menu">👤</button>
+          <div id="user-menu" class="user-menu">
+            <div id="user-info" class="user-menu-item" style="border-bottom: 1px solid var(--input-border); margin-bottom: 0.5rem;">
+              <span>👤</span>
+              <span id="username-display">Not logged in</span>
+            </div>
+            <div class="user-menu-item" id="login-menu-item">
+              <span>🔑</span>
+              <span>Login</span>
+            </div>
+            <div class="user-menu-item" id="logout-menu-item" style="display: none;">
+              <span>🚪</span>
+              <span>Logout</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>    
+  </div>
+
+    <div id="step-tracker" style="display: none; justify-content: center; gap: 2rem; margin-bottom: 1rem;">
+      <span class="step" id="step1">1️⃣ Upload</span>
+      <span class="step" id="step2">2️⃣ Analyze</span>
+      <span class="step" id="step3">3️⃣ Voices</span>
+      <span class="step" id="step4">4️⃣ Results</span>
+    </div>
     </div>
 
-    <div id="app-container">
-        <div id="upload-view" class="view" ></div>
-        <div id="analysis-view" class="view" hidden></div>
-        <div id="voice-view" class="view" hidden></div>
-        <div id="progress-view" class="view" hidden></div>
-        <div id="results-view" class="view" hidden></div>
+  <!-- Welcome Screen -->
+  <div id="welcome-screen" class="view">
+    <div class="welcome-content" style="max-width: 700px; margin: 4rem auto; padding: 2rem; text-align: center; border-radius: 12px;">
+      <h1 style="font-size: 2.5rem; margin-bottom: 1rem;">Welcome to PodcastAI Studio</h1>
+      <p style="font-size: 1.2rem; margin-bottom: 1rem;">This tool helps you convert any research paper or story into an engaging podcast using AI voices.</p>
+      <ul style="text-align: left; max-width: 400px; margin: 0 auto 2rem; font-size: 1.1rem;">
+        <li>📤 Upload a PDF</li>
+        <li>🧠 Analyze and extract content</li>
+        <li>🗣️ Choose voices and tones</li>
+        <li>🎧 Generate the final podcast</li>
+      </ul>
+      <button id="start-button" class="primary-btn" style="padding: 0.75rem 1.5rem; font-size: 1.1rem; background-color: #4f46e5; color: white; border: none; border-radius: 8px; cursor: pointer;">🚀 Let's Get Started</button>
     </div>
+  </div>
+
+  <!-- App Views Container -->
+  <div id="app-container" hidden>
+    <div id="login-view" class="view" hidden></div>
+    <div id="upload-view" class="view" hidden></div>
+    <div id="analysis-view" class="view" hidden>
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <h3>Total Words</h3>
+          <p id="total-words">-</p>
+        </div>
+        <div class="metric-card">
+          <h3>Unique Words</h3>
+          <p id="unique-words">-</p>
+        </div>
+        <div class="metric-card">
+          <h3>Average Sentiment</h3>
+          <p id="avg-sentiment">-</p>
+        </div>
+        <div class="metric-card">
+          <h3>Reading Time</h3>
+          <p id="reading-time">-</p>
+        </div>
+        <div class="metric-card">
+          <h3>Paragraph Count</h3>
+          <p id="paragraph-count">-</p>
+        </div>
+        <div class="metric-card">
+          <h3>Sentence Count</h3>
+          <p id="sentence-count">-</p>
+        </div>
+        <div class="metric-card">
+          <h3>Average Word Length</h3>
+          <p id="avg-word-length">-</p>
+        </div>
+        <div class="metric-card">
+          <h3>Complexity Score</h3>
+          <p id="complexity-score">-</p>
+        </div>
+      </div>
+
+      <div class="charts-grid">
+        <div class="chart-container">
+          <canvas id="sentiment-chart"></canvas>
+        </div>
+        <div class="chart-container">
+          <canvas id="topic-distribution-chart"></canvas>
+        </div>
+        <div class="chart-container">
+          <canvas id="word-frequency-chart"></canvas>
+        </div>
+        <div class="chart-container">
+          <canvas id="reading-level-chart"></canvas>
+        </div>
+      </div>
+    </div>
+    <div id="voice-view" class="view" hidden></div>
+    <div id="progress-view" class="view" hidden></div>
+    <div id="results-view" class="view" hidden></div>
+  </div>
+
+  <!-- Login Modal -->
+  <div id="login-modal" class="modal">
+    <div class="modal-content">
+      <h2>🔐 Login to PodcastAI</h2>
+      <form id="login-form">
+        <div class="form-group">
+          <label for="username">Username</label>
+          <input type="text" id="username" required placeholder="Enter your username">
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" required placeholder="Enter your password">
+        </div>
+        <div class="form-actions">
+          <button type="button" id="cancel-login">Cancel</button>
+          <button type="submit">Login</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Signup Modal -->
+  <div id="signup-modal" class="modal">
+    <div class="modal-content">
+      <h2>✨ Sign Up for PodcastAI</h2>
+      <form id="signup-form">
+        <div class="form-group">
+          <label for="signup-username">Username</label>
+          <input type="text" id="signup-username" required placeholder="Choose a username">
+        </div>
+        <div class="form-group">
+          <label for="signup-email">Email</label>
+          <input type="email" id="signup-email" required placeholder="Enter your email">
+        </div>
+        <div class="form-group">
+          <label for="signup-password">Password</label>
+          <input type="password" id="signup-password" required placeholder="Choose a password">
+        </div>
+        <div class="form-group">
+          <label for="signup-confirm-password">Confirm Password</label>
+          <input type="password" id="signup-confirm-password" required placeholder="Confirm your password">
+        </div>
+        <div class="form-actions">
+          <button type="button" id="cancel-signup">Cancel</button>
+          <button type="submit">Sign Up</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
 </body>
 </html>
