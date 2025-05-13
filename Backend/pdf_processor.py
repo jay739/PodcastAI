@@ -9,6 +9,10 @@ import textstat
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 import nltk; nltk.download('vader_lexicon', quiet=True)
 import spacy
+from nltk.corpus import stopwords as nltk_stopwords
+nltk.download('stopwords', quiet=True)
+from transformers import BertTokenizer, BertModel
+import torch
 
 from eda_metrics import (
     generate_word_frequencies,
@@ -16,13 +20,10 @@ from eda_metrics import (
     get_topic_model
 )
 
-# Global stopwords set
-STOPWORDS = set([
-    "this", "that", "with", "from", "were", "have", "which", "about",
-    "the", "and", "for", "then", "than", "however", "into", "onto", "until",
-    "also", "these", "those", "such", "their", "been", "some", "many", "most",
-    "like", "used", "using", "between", "other", "only", "more", "each", "same"
-])
+STOPWORDS = set(nltk_stopwords.words('english'))
+
+bert_tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+bert_model = BertModel.from_pretrained('bert-base-uncased')
 
 
 def extract_text(pdf_path: str) -> Tuple[str, Dict]:
@@ -68,6 +69,25 @@ def chunk_text(text: str, chunk_size=1500, overlap=200) -> List[str]:
     if current_chunk:
         chunks.append(' '.join(current_chunk))
     return chunks
+
+
+def extract_stopwords_and_links_bert(text: str, attention_threshold: float = 0.02) -> Dict[str, List[str]]:
+    tokens = bert_tokenizer(text, return_tensors='pt', truncation=True, max_length=512)
+    with torch.no_grad():
+        outputs = bert_model(**tokens, output_attentions=True)
+    attentions = outputs.attentions[-1]  # use last layer attention
+    avg_attention = attentions.mean(dim=1).squeeze(0).mean(dim=0).tolist()
+
+    input_tokens = bert_tokenizer.convert_ids_to_tokens(tokens['input_ids'][0])
+    stopword_like = [t for t, a in zip(input_tokens, avg_attention) if a < attention_threshold and t not in ('[CLS]', '[SEP]')]
+
+    words = text.split()
+    links_found = re.findall(r'https?://\S+|www\.\S+', text)
+
+    return {
+        "stopwords": stopword_like,
+        "links": links_found
+    }
 
 
 def analyze_pdf(pdf_path: Optional[str]) -> Dict:
@@ -143,6 +163,7 @@ def analyze_pdf(pdf_path: Optional[str]) -> Dict:
     word_freq = generate_word_frequencies(full_text, top_n=50)
     chunk_sentiments = analyze_sentiment_by_chunk(chunks)
     topics = get_topic_model(chunks)
+    stopword_link_data = extract_stopwords_and_links_bert(full_text)
 
     return {
         "full_text": full_text,
@@ -170,5 +191,7 @@ def analyze_pdf(pdf_path: Optional[str]) -> Dict:
         "entities": top_entities,
         "diversity": diversity,
         "unique_words": unique_words,
-        "lexical_density": lexical_density
+        "lexical_density": lexical_density,
+        "stopwords_detected": stopword_link_data["stopwords"],
+        "links_detected": stopword_link_data["links"]
     }
