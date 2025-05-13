@@ -1,7 +1,7 @@
 import os
 import re
 import pandas as pd
-from typing import Dict
+from typing import Dict, Optional
 from datetime import datetime
 from pydub import AudioSegment
 
@@ -21,6 +21,11 @@ def get_tts_generator(model: str):
     else:
         return BarkTTSGenerator()  # default
 
+# For preview route
+def preview_voice(text: str, voice_type: str = "neutral", speaker_name: str = "preview", tts_model: str = "bark") -> AudioSegment:
+    generator = get_tts_generator(tts_model)
+    return generator.generate(text, voice_type)
+
 # ----------------------------
 # 🧹 Filter unwanted/system lines
 # ----------------------------
@@ -38,12 +43,11 @@ def remove_system_like_lines(df: pd.DataFrame) -> pd.DataFrame:
 # ----------------------------
 # ✅ Synthesize Audio from Transcript
 # ----------------------------
-def synthesize_podcast_audio(
-    script_df: pd.DataFrame,
-    output_path: str,
-    speakers_config: Dict[str, Dict[str, str]],
-    tts_model: str = "bark"
-) -> str:
+def synthesize_podcast_audio(script_df: pd.DataFrame, output_path: str, 
+                             speakers_config: Dict[str, Dict[str, str]], 
+                             tts_model: str = "bark", 
+                             bg_music: Optional[str] = None) -> str:
+
     tts = get_tts_generator(tts_model)
     use_batch = hasattr(tts, "generate_batch_segments")
 
@@ -51,9 +55,14 @@ def synthesize_podcast_audio(
     print(f"🧑‍🤝‍🧑 Speakers config: {list(speakers_config.keys())}")
 
     # Optional background music
-    bg_music_path = "assets/bg_music.mp3"
-    if os.path.exists(bg_music_path):
-        raw_bg = AudioSegment.from_file(bg_music_path).low_pass_filter(2000) - 20
+    if bg_music is None:
+        bg_path = "assets/bg_music.mp3"
+    elif bg_music.lower() == "none":
+        bg_path = None
+    else:
+        bg_path = bg_music  # custom track path
+    if bg_path and os.path.exists(bg_path):
+        raw_bg = AudioSegment.from_file(bg_path).low_pass_filter(2000) - 20
     else:
         raw_bg = AudioSegment.silent(duration=5000)
 
@@ -72,20 +81,16 @@ def synthesize_podcast_audio(
         normalized_name = speaker.strip().lower()
 
         if normalized_name not in speakers_config:
-            print(f"⚠️ Skipping unknown speaker: {speaker}")
-            continue
+            print(f"⚠️ Unknown speaker: {speaker}. Using fallback voice.")
+            gender = "male"
+            tone = "neutral"
+        else:
+            gender = speakers_config[normalized_name].get("gender", "male")
+            tone = speakers_config[normalized_name].get("tone", "neutral")
 
-        gender = speakers_config[normalized_name].get("gender", "male")
-        tone = speakers_config[normalized_name].get("tone", "neutral")
-        timestamp = f"[{(i * 30) // 60:02d}:{(i * 30) % 60:02d}]"
-
-        segments.append(
-            {"text": timestamp, "gender": gender, "tone": tone, "speaker_name": normalized_name}
-        )
         segments.append(
             {"text": dialogue, "gender": gender, "tone": tone, "speaker_name": normalized_name}
         )
-
 
     print(f"📦 Prepared {len(segments)} segments for synthesis (batch: {use_batch})")
 
@@ -110,12 +115,14 @@ def synthesize_podcast_audio(
                 )
                 audio_segments.append(audio)
             except Exception as e:
-                print(f"❌ Failed to synthesize: {seg['text'][:40]}... ({e})")
+                print(f"❌ Failed [{seg['speaker_name']}]: {seg['text'][:40]}... ({e})")
 
     # 🧃 Combine segments
-    combined = AudioSegment.silent(duration=500)
+    SILENCE_BEFORE = 500
+    SILENCE_AFTER = 300
+    combined = AudioSegment.silent(duration=SILENCE_BEFORE)
     for audio in audio_segments:
-        combined += audio + AudioSegment.silent(duration=300)
+        combined += audio + AudioSegment.silent(duration=SILENCE_AFTER)
 
     # 🎶 Overlay background music
     loops = int(len(combined) / len(raw_bg)) + 1

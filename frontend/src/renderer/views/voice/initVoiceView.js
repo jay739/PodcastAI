@@ -40,7 +40,7 @@ export function initVoiceView() {
 
   // Toggle View Mode Logic
   const toggleViewBtn = document.getElementById("toggle-view-mode");
-  toggleViewBtn.disabled = false;  // ✅ Ensure it's clickable
+  toggleViewBtn.disabled = false;  
 
   toggleViewBtn?.addEventListener("click", () => {
     document.activeElement?.blur();

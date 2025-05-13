@@ -1,0 +1,36 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Electron: Main",
+      "type": "pwa-node",            // modern Node debugger
+      "request": "launch",
+      "cwd": "${workspaceFolder}/frontend",
+      "runtimeExecutable": "${workspaceFolder}/frontend/node_modules/.bin/electron",
+      "runtimeArgs": [
+        "--remote-debugging-port=9223",
+        "."                         // launch the app from frontend/
+      ],
+      "windows": {
+        "runtimeExecutable": "${workspaceFolder}/frontend/node_modules/.bin/electron.cmd"
+      }
+    },
+    {
+      "name": "Electron: Renderer",
+      "type": "pwa-chrome",          // modern Chrome debugger
+      "request": "attach",
+      "port": 9223,
+      "webRoot": "${workspaceFolder}/frontend/src/renderer",
+      "timeout": 30000
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Electron: All",
+      "configurations": [
+        "Electron: Main",
+        "Electron: Renderer"
+      ]
+    }
+  ]
+}

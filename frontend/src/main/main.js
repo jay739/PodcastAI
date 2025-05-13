@@ -4,10 +4,14 @@ if (process.env.NODE_ENV === 'development') {
   });
 }
 
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
 const { setupFileHandlers } = require('./ipc/fileHandlers');
 const { setupPodcastHandlers } = require('./ipc/podcastHandlers');
 const log = require('electron-log');
+const { initAuth } = require('./auth');
+const { initDatabase } = require('./database');
+const path = require('path');
+const { setupAuthHandlers } = require('./ipc/authHandlers');
 
 // Configure logging
 log.transports.file.level = 'debug';
@@ -17,6 +21,7 @@ log.info('App starting...');
 function initialize() {
   setupFileHandlers();
   setupPodcastHandlers();
+  setupAuthHandlers();
 }
 
 function createWindow() {
@@ -24,7 +29,9 @@ function createWindow() {
   return createMainWindow();
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  await initDatabase();
+  initAuth();
   log.info('App is ready');
   initialize();
   createWindow();

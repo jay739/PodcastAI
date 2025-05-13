@@ -46,4 +46,4 @@ document.addEventListener('DOMContentLoaded', async () => {
     `;
     errorEl.hidden = false;
   }
-});
+}); 

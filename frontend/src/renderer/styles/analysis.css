@@ -1,0 +1,76 @@
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.metric-card {
+  background: var(--card-bg, #ffffff);
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+}
+
+.metric-card:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
+.metric-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.metric-icon {
+  font-size: 1.2rem;
+}
+
+.metric-title {
+  font-weight: 600;
+  color: var(--text-primary, #1f2937);
+}
+
+.metric-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--accent-color, #4f46e5);
+  margin: 0.5rem 0;
+}
+
+.metric-description {
+  font-size: 0.9rem;
+  color: var(--text-secondary, #6b7280);
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.3s ease;
+  margin-top: auto;
+  padding-top: 0.5rem;
+}
+
+.metric-card:hover .metric-description {
+  opacity: 1 !important;
+  transform: translateY(0) !important;
+}
+
+/* Dark mode support */
+:root[data-theme="dark"] .metric-card {
+  background: var(--card-bg, #1e293b);
+}
+
+:root[data-theme="dark"] .metric-title {
+  color: var(--text-primary, #f9fafb);
+}
+
+:root[data-theme="dark"] .metric-description {
+  color: var(--text-secondary, #9ca3af);
+} 

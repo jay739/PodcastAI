@@ -29,6 +29,51 @@ export function initUploadView() {
   const statusDiv = document.getElementById("upload-status");
   const dropZone = document.getElementById("drop-zone");
 
+  // Prevent default drag behaviors
+  ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+    dropZone.addEventListener(eventName, preventDefaults, false);
+    document.body.addEventListener(eventName, preventDefaults, false);
+  });
+
+  // Highlight drop zone when item is dragged over it
+  ['dragenter', 'dragover'].forEach(eventName => {
+    dropZone.addEventListener(eventName, highlight, false);
+  });
+
+  ['dragleave', 'drop'].forEach(eventName => {
+    dropZone.addEventListener(eventName, unhighlight, false);
+  });
+
+  // Handle dropped files
+  dropZone.addEventListener('drop', handleDrop, false);
+
+  function preventDefaults(e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
+  function highlight(e) {
+    dropZone.classList.add('highlight');
+  }
+
+  function unhighlight(e) {
+    dropZone.classList.remove('highlight');
+  }
+
+  function handleDrop(e) {
+    const dt = e.dataTransfer;
+    const files = dt.files;
+
+    if (files.length > 0) {
+      const file = files[0];
+      if (file.type === 'application/pdf') {
+        handleUpload(file.path);
+      } else {
+        statusDiv.innerHTML = `<span class="error">❌ Please upload a PDF file.</span>`;
+      }
+    }
+  }
+
   const handleUpload = async (filePath) => {
     try {
       uploadButton.disabled = true;
@@ -48,11 +93,10 @@ export function initUploadView() {
         id: fileID
       });
 
-      statusDiv.innerHTML = `<span class="success">✅ File uploaded successfully.</span><br>🧠 Analyzing content...`;
+      statusDiv.innerHTML = `<span class="success">✅ File uploaded successfully.</span><br><span class="spinner"></span> 🧠 Analyzing content...`;
 
       const analysis = await podcastAPI.files.analyze(fileID);
       state.setAnalysisResults(analysis);
-
       showAnalysisView();
     } catch (error) {
       console.error("Upload error:", error);
@@ -69,32 +113,6 @@ export function initUploadView() {
       await handleUpload(filePath);
     } else {
       statusDiv.innerText = "⚠️ No file selected.";
-    }
-  });
-
-  dropZone.addEventListener("click", async () => {
-    const filePath = await podcastAPI.files.select();
-    if (filePath) {
-      await handleUpload(filePath);
-    }
-  });  
-
-  dropZone.addEventListener("dragover", (e) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "copy";
-    dropZone.style.background = "#e0e7ff";
-  });
-  
-  dropZone.addEventListener("dragleave", () => {
-    dropZone.style.background = "#f9fafb";
-  });
-
-  dropZone.addEventListener("drop", async (e) => {
-    e.preventDefault();
-    dropZone.style.background = "#f9fafb";
-    const files = e.dataTransfer.files;
-    if (files.length && files[0].path) {
-      await handleUpload(files[0].path);
     }
   });
 

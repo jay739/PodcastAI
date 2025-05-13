@@ -24,6 +24,36 @@ export function renderVoiceViewLayout() {
       </div>
 
       <div id="speaker-table-container"></div>
+      <div class="options-bar">
+        <label>Language: 
+          <select id="language-select">
+            <option value="en" selected>English</option>
+            <option value="es">Spanish</option>
+            <option value="fr">French</option>
+            <option value="de">German</option>
+          </select>
+        </label>
+        <label style="margin-left:1rem;">Background Music: 
+          <select id="bg-music-select">
+            <option value="default" selected>Default</option>
+            <option value="none">None</option>
+          </select>
+        </label>
+        <label style="margin-left:1rem;">TTS Model: 
+          <select id="tts-model-select">
+            <option value="bark" selected>Bark (Default)</option>
+            <option value="xtts">Coqui X</option>
+            <option value="kokoro">Kokoro</option>
+          </select>
+        </label>
+        <label style="margin-left:1rem;">AI Model: 
+          <select id="llm-model-select">
+            <option value="" selected>Local (Default)</option>
+            <option value="gpt-3.5">OpenAI GPT-3.5</option>
+            <option value="gpt-4">OpenAI GPT-4</option>
+          </select>
+        </label>
+      </div>
 
       <div class="generate-container">
         <button id="generate-voice" class="primary-btn">▶️ Generate Podcast</button>

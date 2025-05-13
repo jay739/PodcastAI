@@ -50,7 +50,9 @@ export function renderSpeakerTable(container, mode = "table") {
       <tbody id="speaker-table-body">
         ${state.speakers.map((sp, i) => `
           <tr>
-            <td><input type="text" id="table-name-${i}" value="${sp.name}" style="width: 100%; padding: 0.5rem;" /></td>
+            <td>
+              <input type="text" id="table-name-${i}" value="${sp.name}" style="width: 100%; padding: 0.5rem;" />
+            </td>
             <td><select id="table-gender-${i}" style="width: 100%; padding: 0.5rem;">
               <option value="male" ${sp.gender === "male" ? "selected" : ""}>Male</option>
               <option value="female" ${sp.gender === "female" ? "selected" : ""}>Female</option>
@@ -61,10 +63,15 @@ export function renderSpeakerTable(container, mode = "table") {
               <option value="negative" ${sp.tone === "negative" ? "selected" : ""}>Negative</option>
             </select></td>
             <td><span id="error-${i}" style="color: #dc2626;"></span></td>
-            <td><button class="remove-row-btn" data-index="${i}" style="color: #dc2626; font-weight: bold;">✖</button></td>
+            <td style="display: flex; gap: 0.5rem; align-items: center;">
+              <button class="remove-row-btn" data-index="${i}" style="color: #dc2626; font-weight: bold;">✖</button>
+              <button class="preview-voice-btn" data-index="${i}" title="Preview this voice" style="padding: 0.5rem;">🔊</button>
+            </td>
           </tr>`).join("")}
       </tbody>
     </table>
+    <button id="save-profile" style="margin-right: 0.5rem;">💾 Save Profile</button>
+    <button id="load-profile">🔄 Load Profile</button>
     <div style="text-align: right;">
       <button id="add-row-btn" style="padding: 0.5rem 1rem; border-radius: 6px; background: #4f46e5; color: white; border: none;">➕ Add Row</button>
     </div>
@@ -88,6 +95,26 @@ export function renderSpeakerTable(container, mode = "table") {
       return;
     }
 
+  document.getElementById("save-profile")?.addEventListener("click", () => {
+        // Save current speakers to localStorage
+        localStorage.setItem("savedSpeakers", JSON.stringify(state.speakers));
+        alert("Speaker profile saved.");
+    });
+    document.getElementById("load-profile")?.addEventListener("click", () => {
+        const saved = localStorage.getItem("savedSpeakers");
+        if (saved) {
+            try {
+                state.speakers = JSON.parse(saved);
+                renderSpeakerTable(container, "table");
+            } catch(e) {
+                console.error("Failed to load profile:", e);
+                alert("Failed to load saved profile.");
+            }
+        } else {
+            alert("No saved profile found.");
+        }
+    });
+  
     document.activeElement?.blur();
 
     requestAnimationFrame(() => {

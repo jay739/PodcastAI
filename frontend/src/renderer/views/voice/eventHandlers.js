@@ -11,35 +11,41 @@ export function setupEventHandlers() {
   const toggleBtn = document.getElementById("toggle-view-mode");
   const tableContainer = document.getElementById("speaker-table-container");
 
-  // Toggle view mode
-  if (toggleBtn) {
-    toggleBtn.addEventListener("click", () => {
-      currentMode = currentMode === "table" ? "form" : "table";
-      renderSpeakerTable(tableContainer);
-    });
-  }
-
-  // Add speaker
-  document.getElementById("add-speaker")?.addEventListener("click", () => {
-    if (state.speakers.length >= 5) {
-      status.innerText = "⚠️ Maximum of 5 speakers allowed.";
-      return;
-    }
-    state.speakers.push({ name: "", gender: "male", tone: "neutral" });
-    renderSpeakerTable(tableContainer);
-  });
-
-  // Remove speaker
-  document.addEventListener("click", (e) => {
-    if (e.target?.classList?.contains("remove-speaker-btn")) {
-      const index = parseInt(e.target.dataset.index, 10);
-      if (!isNaN(index)) {
-        state.speakers.splice(index, 1);
-        renderSpeakerTable(tableContainer);
+  document.addEventListener("click", async (e) => {
+    if(e.target?.classList?.contains("preview-voice-btn")) {
+      const idx = parseInt(e.target.dataset.index, 10);
+      if(!isNaN(idx)) {
+        const speaker = state.speakers[idx];
+        if(speaker && speaker.name) {
+          // Prepare preview text (use the speaker's name in a sample sentence)
+          const previewText = `Hello, my name is ${speaker.name}. This is a voice preview.`;
+          const gender = speaker.gender || "male";
+          const tone = speaker.tone || "neutral";
+          const ttsModel = document.getElementById("tts-model-select")?.value || "bark";
+          try {
+            // Use the correct API for preview
+            if (window.podcastAPI && window.podcastAPI.podcast && window.podcastAPI.podcast.previewVoice) {
+              const audioBlob = await window.podcastAPI.podcast.previewVoice({
+                text: previewText, 
+                gender, tone, speaker: speaker.name, 
+                tts_model: ttsModel
+              });
+              // Play the returned audio blob
+              const url = URL.createObjectURL(audioBlob);
+              const audio = new Audio(url);
+              audio.play();
+            } else {
+              alert("Voice preview API is not available.");
+            }
+          } catch(err) {
+            console.error("Voice preview failed:", err);
+            alert("Voice preview failed. See console for details.");
+          }
+        }
       }
     }
   });
-
+  
   // Generate podcast
   document.getElementById("generate-voice")?.addEventListener("click", async () => {
     const speakerCount = state.speakers.length;
@@ -95,20 +101,10 @@ export function setupEventHandlers() {
         host,
         tts_model: model
       });
-
-      status.innerHTML = "✅ Audio generated! Loading transcript...";
-
-      setTimeout(async () => {
-        const preview = document.getElementById("transcript-preview");
-        preview.style.display = "block";
-
-        await loadTranscriptPreview();
-
-        // Scroll to transcript section
-        preview.scrollIntoView({ behavior: "smooth", block: "start" });
-
-        status.innerHTML += "<br>📖 Transcript loaded below.";
-      }, 1500);
+      status.innerText = "✅ Audio generated successfully!";
+      state.currentJobId = result.job_id;
+      state.transcriptText = result.transcript;
+      showResultsView();
     } catch (err) {
       console.error("Error during generation:", err);
       status.innerText = "❌ Generation failed. Check console.";
@@ -120,3 +116,4 @@ export function setupEventHandlers() {
     import("./uploadView.js").then(({ showUploadView }) => showUploadView());
   });
 }
+
