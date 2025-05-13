@@ -11,13 +11,8 @@ const MAX_FILE_SIZE = 50 * 1024 * 1024
 module.exports = { setupFileHandlers }
 
 function setupFileHandlers() {
-    // File selection handler
     ipcMain.handle('files:select', handleFileSelect)
-    
-    // File upload handler
     ipcMain.handle('files:upload', handleFileUpload)
-    
-    // File analysis handler
     ipcMain.handle('files:analyze', handleFileAnalysis)
 }
 
@@ -48,12 +43,10 @@ async function handleFileSelect() {
 
 async function handleFileUpload(_, filePath) {
     try {
-        // Validate file path
         if (!filePath || typeof filePath !== 'string') {
             throw new Error('Invalid file path provided')
         }
 
-        // Security check
         if (path.isAbsolute(filePath)) {
             const normalizedPath = path.normalize(filePath)
             if (normalizedPath !== filePath) {
@@ -61,7 +54,6 @@ async function handleFileUpload(_, filePath) {
             }
         }
 
-        // Check file existence and size
         const stats = fs.statSync(filePath)
         if (!stats.isFile()) {
             throw new Error('Path does not point to a valid file')
@@ -71,7 +63,6 @@ async function handleFileUpload(_, filePath) {
             throw new Error(`File size exceeds ${MAX_FILE_SIZE / (1024 * 1024)}MB limit`)
         }
 
-        // Prepare and send the file
         const form = new FormData()
         form.append('file', fs.createReadStream(filePath), {
             filename: path.basename(filePath),
@@ -86,7 +77,7 @@ async function handleFileUpload(_, filePath) {
             },
             maxContentLength: MAX_FILE_SIZE,
             maxBodyLength: MAX_FILE_SIZE,
-            timeout: 30000 // 30 seconds timeout
+            timeout: 30000
         })
 
         log.info('Upload successful:', response.data)
@@ -107,11 +98,17 @@ async function handleFileAnalysis(_, fileID) {
 
         log.info(`Starting analysis for file ID: ${fileID}`)
         const response = await axios.get(`${API_URL}/api/analyze/${fileID}`, {
-            timeout: 60000 // 60 seconds timeout
+            timeout: 60000
         })
 
-        log.info('Analysis completed:', response.data)
-        return response.data
+        if (!response.data || !response.data.success) {
+            throw new Error('Analysis failed or returned invalid response')
+        }
+
+        // ✅ Normalize structure so frontend doesn't have to dig into .data
+        return {
+            ...response.data
+        }
 
     } catch (error) {
         const errorMessage = getErrorMessage(error)

@@ -1,72 +1,80 @@
-const { ipcMain } = require('electron')
-const log = require('electron-log')
+const { ipcMain } = require('electron');
+const log = require('electron-log');
 
-module.exports = { setupAuthHandlers }
+let handlersInitialized = false;
 
 function setupAuthHandlers() {
-    ipcMain.handle('login', handleLogin)
-    ipcMain.handle('signup', handleSignup)
-    ipcMain.handle('logout', handleLogout)
-    ipcMain.handle('get-current-user', handleGetCurrentUser)
+  // Prevent duplicate handler registration
+  if (handlersInitialized) {
+    log.info('Auth handlers already initialized, skipping...');
+    return;
+  }
+
+  log.info('Setting up auth handlers...');
+
+  ipcMain.handle('login', async (event, { username, password }) => {
+    try {
+      // TODO: Implement actual authentication logic
+      // For now, return a mock successful login
+      return {
+        success: true,
+        user: {
+          username,
+          email: `${username}@example.com`
+        }
+      };
+    } catch (error) {
+      log.error('Login error:', error);
+      return {
+        success: false,
+        message: 'Login failed'
+      };
+    }
+  });
+
+  ipcMain.handle('signup', async (event, { username, email, password }) => {
+    try {
+      // TODO: Implement actual signup logic
+      // For now, return a mock successful signup
+      return {
+        success: true,
+        user: {
+          username,
+          email
+        }
+      };
+    } catch (error) {
+      log.error('Signup error:', error);
+      return {
+        success: false,
+        message: 'Signup failed'
+      };
+    }
+  });
+
+  ipcMain.handle('logout', async () => {
+    try {
+      // TODO: Implement actual logout logic
+      return { success: true };
+    } catch (error) {
+      log.error('Logout error:', error);
+      return { success: false };
+    }
+  });
+
+  ipcMain.handle('get-current-user', async () => {
+    try {
+      // TODO: Implement actual user session check
+      // For now, return null (not logged in)
+      return null;
+    } catch (error) {
+      log.error('Get current user error:', error);
+      return null;
+    }
+  });
+
+  handlersInitialized = true;
+  log.info('Auth handlers setup complete');
 }
 
-async function handleLogin(event, { username, password }) {
-    try {
-        // TODO: Implement actual authentication logic
-        // For now, return a mock successful login
-        return {
-            success: true,
-            user: {
-                username,
-                email: `${username}@example.com`
-            }
-        }
-    } catch (error) {
-        log.error('Login error:', error)
-        return {
-            success: false,
-            message: 'Login failed'
-        }
-    }
-}
-
-async function handleSignup(event, { username, email, password }) {
-    try {
-        // TODO: Implement actual signup logic
-        // For now, return a mock successful signup
-        return {
-            success: true,
-            user: {
-                username,
-                email
-            }
-        }
-    } catch (error) {
-        log.error('Signup error:', error)
-        return {
-            success: false,
-            message: 'Signup failed'
-        }
-    }
-}
-
-async function handleLogout() {
-    try {
-        // TODO: Implement actual logout logic
-        return { success: true }
-    } catch (error) {
-        log.error('Logout error:', error)
-        return { success: false }
-    }
-}
-
-async function handleGetCurrentUser() {
-    try {
-        // TODO: Implement actual user session check
-        // For now, return null (not logged in)
-        return null
-    } catch (error) {
-        log.error('Get current user error:', error)
-        return null
-    }
-} 
+module.exports = { setupAuthHandlers }; 
