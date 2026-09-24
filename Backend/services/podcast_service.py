@@ -4,8 +4,9 @@ from pdf_processor import analyze_pdf, chunk_text
 from llm_service import OllamaLLMProvider
 from tts_service import synthesize_podcast_audio
 from vector_db import TextChunk, FaissVectorDB
-from services.transcript_utils import parse_transcript
 import re
+import os
+from services.transcript_utils import parse_transcript, save_arc_transcript
 
 class UnifiedPodcastGenerator:
     def __init__(self, fileID: str, chunks: List[TextChunk], podcast_title: str = "Insights Unpacked",
@@ -93,7 +94,8 @@ Generate a markdown-formatted podcast transcript. Follow this structure:
 {speaker_tone_descriptions}
 """
 
-        # Run LLM
+        if hasattr(self, "language") and self.language not in ["en", "english", "English"]:
+            prompt += f"\n\nRespond in {self.language}."
         transcript = self.llm.generate_response(prompt, max_tokens=5000)
         transcript = self._format_dialogue(transcript)
         transcript_path = f"outputs/{self.fileID}_transcript.md"
@@ -107,25 +109,37 @@ Generate a markdown-formatted podcast transcript. Follow this structure:
         full_transcript = f"# {self.podcast_title} - Episode {self.episode_number}: {self.episode_subtitle}\n\n{transcript}"
         return full_transcript, transcript_path
 
-
 class PodcastService:
-    def generate_podcast(self, fileID: str, config: Dict) -> Dict:
-        pdf_path = f"uploads/{fileID}.pdf"
+    def __init__(self):
+        self.llm = OllamaLLMProvider()  # default local model
+
+    def generate_transcript(self, fileID: str, config: Dict) -> Dict:
+        """Generate a podcast transcript (markdown) for the given PDF and config, without audio."""
+        pdf_path = os.path.join('uploads', f"{fileID}.pdf")
         analysis = analyze_pdf(pdf_path)
         metadata = analysis["metadata"]
         full_text = analysis["full_text"]
         chunks = chunk_text(full_text)
         text_chunks = [TextChunk(i, chunk, metadata) for i, chunk in enumerate(chunks)]
-
-        # 🔄 Convert speakers list to config dict
-        raw_speakers = config.get("speakers", [])  # From frontend: list of {name, gender, tone}
+        
+        # Prepare speakers configuration dict
+        raw_speakers = config.get("speakers", [])
         speakers_config = {
-            speaker["name"]: {
-                "gender": speaker.get("gender", "male"),
-                "tone": speaker.get("tone", "neutral")
+            s["name"].strip().lower(): {
+                "gender": s.get("gender", "male"),
+                "tone": s.get("tone", "neutral")
             }
-            for speaker in raw_speakers if "name" in speaker
+            for s in raw_speakers if "name" in s
         }
+
+        # Initialize generator (allow dynamic LLM model selection via config)
+        if config.get("llm_model") in {"gpt-4", "gpt-3.5"}:
+            # Switch to OpenAI LLM if specified (requires API key configuration)
+            try:
+                from llm_service import OpenAiLLMProvider
+                self.llm = OpenAiLLMProvider(model_name=config["llm_model"])
+            except Exception as e:
+                print(f"⚠️ OpenAI provider not available: {e}")
 
         generator = UnifiedPodcastGenerator(
             fileID=fileID,
@@ -135,15 +149,61 @@ class PodcastService:
             guest_name=config.get("guest")
         )
 
-        transcript, transcript_path = generator.generate_transcript(speakers_config)
-        output_path = f"outputs/{fileID}.mp3"
-
-        synthesize_podcast_audio(parse_transcript(transcript_path), output_path, speakers_config)
-
+        # Pass target language to generator if specified
+        generator.language = config.get("language", "en")
+        
+        # Generate transcript markdown
+        transcript_md, transcript_path = generator.generate_transcript(speakers_config)
+        
         return {
-            "fileID": fileID,
-            "transcript": transcript,
-            "output_path": output_path
+            "transcript": transcript_md,
+            "transcript_path": transcript_path,
+            "speakers_config": speakers_config
         }
+
+    def generate_podcast(self, fileID: str, config: Dict) -> Dict:
+        """Generate a complete podcast with transcript and audio."""
+        try:
+            # First, generate the transcript markdown
+            result = self.generate_transcript(fileID, config)
+            transcript_text = result["transcript"]
+            transcript_path = result["transcript_path"]
+            speakers_config = result["speakers_config"]
+            
+            # Generate audio
+            output_path = os.path.join('outputs', f"{fileID}.mp3")
+            tts_model = config.get("tts_model", "bark")
+            
+            # Parse transcript into DataFrame and synthesize audio
+            script_df = parse_transcript(transcript_path)
+            
+            # Optimize audio generation by processing in smaller batches
+            batch_size = 5  # Process 5 segments at a time
+            total_segments = len(script_df)
+            
+            for i in range(0, total_segments, batch_size):
+                batch_df = script_df.iloc[i:i+batch_size]
+                synthesize_podcast_audio(
+                    batch_df, 
+                    output_path, 
+                    speakers_config, 
+                    tts_model=tts_model, 
+                    bg_music=None,
+                    is_batch=True,
+                    batch_number=i//batch_size + 1,
+                    total_batches=(total_segments + batch_size - 1)//batch_size
+                )
+            
+            # Save ARC JSON for the final transcript (for highlighting)
+            save_arc_transcript(script_df, fileID)
+            
+            return {
+                "fileID": fileID,
+                "transcript": transcript_text,
+                "output_path": output_path
+            }
+        except Exception as e:
+            print(f"Error in podcast generation: {str(e)}")
+            raise
 
 podcast_service = PodcastService()

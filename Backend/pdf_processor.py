@@ -108,39 +108,7 @@ def analyze_pdf(pdf_path: Optional[str]) -> Dict:
         keywords = []
         keyword_counts = []
 
-    # Lexical diversity
-    unique_words = len(set(full_text.split()))
-    diversity = unique_words / word_count if word_count else 0
-    lexical_density = diversity * 100 if word_count else 0
 
-    # Advanced readability metrics
-    try:
-        flesch = textstat.flesch_reading_ease(full_text)
-        grade = textstat.flesch_kincaid_grade(full_text)
-        gunning_fog = textstat.gunning_fog(full_text)
-        smog = textstat.smog_index(full_text)
-        coleman_liau = textstat.coleman_liau_index(full_text)
-        automated_readability = textstat.automated_readability_index(full_text)
-    except Exception as e:
-        flesch = grade = gunning_fog = smog = coleman_liau = automated_readability = None
-
-    # Per-page readability breakdown
-    per_page_readability = []
-    if pages > 1:
-        reader = PdfReader(pdf_path)
-        for i, page in enumerate(reader.pages):
-            page_text = page.extract_text() or ""
-            try:
-                per_page_readability.append({
-                    "flesch": textstat.flesch_reading_ease(page_text),
-                    "grade": textstat.flesch_kincaid_grade(page_text),
-                    "gunning_fog": textstat.gunning_fog(page_text),
-                    "smog": textstat.smog_index(page_text),
-                })
-            except Exception:
-                per_page_readability.append(None)
-    else:
-        per_page_readability = None
 
     # Sentiment analysis (overall and per page)
     analyzer = SentimentIntensityAnalyzer()
@@ -157,6 +125,12 @@ def analyze_pdf(pdf_path: Optional[str]) -> Dict:
         score = analyzer.polarity_scores(full_text)['compound']
         page_sents.append(score)
     avg_sentiment = sum(page_sents)/len(page_sents) if page_sents else 0.0
+    # Readability metrics
+    try:
+        flesch = textstat.flesch_reading_ease(full_text)
+        grade = textstat.flesch_kincaid_grade(full_text)
+    except Exception as e:
+        flesch = None; grade = None
     # Named Entity extraction (using a simple regex or spaCy if available)
     entities = []
     try:
@@ -170,6 +144,9 @@ def analyze_pdf(pdf_path: Optional[str]) -> Dict:
     # Count top entities
     entity_counts = Counter([e for e, label in entities if label not in ("CARDINAL", "ORDINAL", "DATE", "TIME")])
     top_entities = [ent for ent, cnt in entity_counts.most_common(5)]
+    # Lexical diversity
+    unique_words = len(set(full_text.split()))
+    diversity = unique_words / word_count if word_count else 0
     chunks = chunk_text(full_text)
     word_freq = generate_word_frequencies(full_text, top_n=50)
     chunk_sentiments = analyze_sentiment_by_chunk(chunks)
@@ -191,17 +168,7 @@ def analyze_pdf(pdf_path: Optional[str]) -> Dict:
         "keywords": keywords,
         "keyword_counts": keyword_counts,
         "sentiment": { "average": avg_sentiment, "per_page": page_sents },
-        "readability": {
-            "flesch_ease": flesch,
-            "grade_level": grade,
-            "gunning_fog": gunning_fog,
-            "smog": smog,
-            "coleman_liau": coleman_liau,
-            "automated_readability": automated_readability,
-            "per_page": per_page_readability
-        },
+        "readability": { "flesch_ease": flesch, "grade_level": grade },
         "entities": top_entities,
-        "diversity": diversity,
-        "unique_words": unique_words,
-        "lexical_density": lexical_density
+        "diversity": diversity
     }

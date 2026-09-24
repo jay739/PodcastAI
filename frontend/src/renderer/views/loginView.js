@@ -182,6 +182,27 @@ function updateLoginMenuItem(user) {
 }
 
 // Check initial login state
-window.podcastAPI.auth.getCurrentUser().then(user => {
-  updateLoginMenuItem(user);
-}); 
+const MAX_RETRIES = 50; // 5 seconds total
+let retryCount = 0;
+
+const checkAuthAPI = () => {
+  if (window.podcastAPI?.auth) {
+    window.podcastAPI.auth.getCurrentUser().then(user => {
+      updateLoginMenuItem(user);
+    }).catch(error => {
+      console.error('Error getting current user:', error);
+      updateLoginMenuItem(null);
+    });
+  } else {
+    if (retryCount < MAX_RETRIES) {
+      retryCount++;
+      console.log(`Waiting for Auth API to be available... (attempt ${retryCount}/${MAX_RETRIES})`);
+      setTimeout(checkAuthAPI, 100);
+    } else {
+      console.error('Auth API failed to initialize after maximum retries');
+      updateLoginMenuItem(null);
+    }
+  }
+};
+
+checkAuthAPI(); 

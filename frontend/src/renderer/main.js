@@ -18,8 +18,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
+  // Wait for podcastAPI to be available
+  const waitForAPI = () => {
+    return new Promise((resolve) => {
+      const checkAPI = () => {
+        if (window.podcastAPI) {
+          resolve();
+        } else {
+          setTimeout(checkAPI, 100);
+        }
+      };
+      checkAPI();
+    });
+  };
+
   try {
     console.log('Starting app initialization...');
+    await waitForAPI(); // Wait for API to be available
     await initAllViews();
     state.reset();
 

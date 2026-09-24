@@ -8,7 +8,7 @@ const API_BASE_URL = 'http://localhost:5001/api';
 const OUTPUT_FOLDER = path.join(__dirname, '../../../backend/outputs');
 
 // Timeout constants
-const GENERATION_TIMEOUT = 300000 // 5 minutes for generation
+const GENERATION_TIMEOUT = 900000 // 15 minutes for generation
 const DOWNLOAD_TIMEOUT = 60000 // 1 minute for download
 
 module.exports = { setupPodcastHandlers }
@@ -36,6 +36,9 @@ async function handlePodcastGeneration(_, config) {
         
         log.info(`Starting podcast generation for file: ${config.fileID}`)
         
+        // Send initial progress
+        ipcMain.emit('podcast:progress', { value: 0, message: 'Starting generation...' })
+        
         const response = await axios.post(
             `${API_BASE_URL}/generate`,
             config,
@@ -46,6 +49,10 @@ async function handlePodcastGeneration(_, config) {
         )
 
         log.info(`Generation started successfully. Job ID: ${response.data.jobId}`)
+        
+        // Send completion progress
+        ipcMain.emit('podcast:progress', { value: 100, message: 'Generation completed!' })
+        
         return response.data
 
     } catch (error) {

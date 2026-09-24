@@ -22,7 +22,7 @@ export function loadTranscriptPreview() {
     ? `/mock/${fileID}.md`
     : `http://localhost:5001/transcript/${fileID}.md`;
 
-  fetch(url) 
+  fetch(url)
     .then((res) => {
       if (!res.ok) throw new Error("Transcript fetch failed");
       return res.text();

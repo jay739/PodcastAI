@@ -4,11 +4,11 @@ export const podcastAPI = {
   ...baseAPI,
   podcast: {
     generate: async (config) => {
-      const response = await window.electron.ipcRenderer.invoke('podcast:generate', config);
+      const response = await baseAPI.podcast.generate(config);
       return response;
     },
     previewVoice: async (config) => {
-      const response = await window.electron.ipcRenderer.invoke('podcast:previewVoice', config);
+      const response = await baseAPI.podcast.previewVoice(config);
       return response;
     }
   }

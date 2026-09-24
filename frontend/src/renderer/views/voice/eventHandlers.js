@@ -23,20 +23,17 @@ export function setupEventHandlers() {
           const tone = speaker.tone || "neutral";
           const ttsModel = document.getElementById("tts-model-select")?.value || "bark";
           try {
-            // Use the correct API for preview
-            if (window.podcastAPI && window.podcastAPI.podcast && window.podcastAPI.podcast.previewVoice) {
-              const audioBlob = await window.podcastAPI.podcast.previewVoice({
+            const audioBlob = await podcastAPI.podcast.previewVoice({
               text: previewText, 
-              gender, tone, speaker: speaker.name, 
+              gender, 
+              tone, 
+              speaker: speaker.name, 
               tts_model: ttsModel
             });
             // Play the returned audio blob
             const url = URL.createObjectURL(audioBlob);
             const audio = new Audio(url);
             audio.play();
-            } else {
-              alert("Voice preview API is not available.");
-            }
           } catch(err) {
             console.error("Voice preview failed:", err);
             alert("Voice preview failed. See console for details.");
@@ -101,10 +98,11 @@ export function setupEventHandlers() {
         host,
         tts_model: model
       });
+      
       status.innerText = "✅ Audio generated successfully!";
       state.currentJobId = result.job_id;
       state.transcriptText = result.transcript;
-      showResultsView();
+      showProgressView();
     } catch (err) {
       console.error("Error during generation:", err);
       status.innerText = "❌ Generation failed. Check console.";

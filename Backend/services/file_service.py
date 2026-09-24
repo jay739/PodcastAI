@@ -14,7 +14,7 @@ class FileService:
         """Handle file upload and return file metadata"""
         if not file.filename.lower().endswith('.pdf'):
             raise ValueError("Only PDF files are allowed")
-        if file.content_length > 10 * 1024 * 1024:  
+        if file.content_length and file.content_length > Config.MAX_CONTENT_LENGTH:
             raise ValueError("File too large")
 
         fileID = str(uuid.uuid4())

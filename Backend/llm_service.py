@@ -3,7 +3,27 @@ import re
 import logging
 from typing import List
 import json
+import os
+import openai
 
+openai.api_key = os.getenv("OPENAI_API_KEY", "")
+openai.api_base = os.getenv("OPENAI_API_BASE", "https://api.openai.com/v1")
+
+class OpenAiLLMProvider:
+    def __init__(self, model_name="gpt-3.5"):
+        # Map friendly names to actual model IDs
+        self.model = "gpt-3.5-turbo" if "3.5" in model_name else "gpt-4"
+    def generate_response(self, prompt: str, max_tokens: int = 1000) -> str:
+        if not openai.api_key:
+            raise RuntimeError("OpenAI API key not set")
+        response = openai.ChatCompletion.create(
+            model=self.model,
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=max_tokens,
+            temperature=0.7
+        )
+        # Extract assistant response
+        return response['choices'][0]['message']['content'].strip()
 class OllamaLLMProvider:
     def __init__(self, model_name: str = "llama3.1:8b"):
         self.model_name = model_name

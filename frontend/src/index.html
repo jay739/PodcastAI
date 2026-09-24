@@ -8,7 +8,12 @@
         content="default-src 'self';
                  connect-src 'self' http://localhost:5001;
                  script-src 'self';
-                 style-src 'self' 'unsafe-inline';">
+                 style-src 'self' 'unsafe-inline';
+                 img-src 'self' data:;
+                 media-src 'self' http://localhost:5001;
+                 font-src 'self';
+                 object-src 'none';
+                 base-uri 'self';">
   <link rel="stylesheet" href="../css/styles.css">
   <link rel="stylesheet" href="../src/renderer/styles/analysis.css">
 </head>
