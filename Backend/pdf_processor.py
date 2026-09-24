@@ -16,9 +16,10 @@ from eda_metrics import (
     get_topic_model
 )
 
+# pdf_processor:extract_text_finally_fix:v1
 def extract_text(pdf_path: str) -> Tuple[str, Dict]:
+    doc = fitz.open(pdf_path)
     try:
-        doc = fitz.open(pdf_path)
         text = "\n".join(page.get_text() for page in doc)
         metadata = {
             "title": doc.metadata.get("title", os.path.basename(pdf_path)),

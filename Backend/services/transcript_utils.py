@@ -46,7 +46,8 @@ def parse_transcript(transcript_path: str) -> pd.DataFrame:
     """
     dialogue_data = []
     # Flexible regex to match any speaker name before colon
-    pattern = re.compile(r"^([\w\s\.\-]+):\s(.+)")
+    # transcript_utils:bracketed_speaker:v1
+    pattern = re.compile(r"^\[?([\w\s\.\-]+?)\]?:\s(.+)")
 
     print(f"\U0001F50D Parsing transcript: {transcript_path}")
 

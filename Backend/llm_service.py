@@ -24,9 +24,10 @@ class OpenAiLLMProvider:
         )
         # Extract assistant response
         return response['choices'][0]['message']['content'].strip()
+# llm_service:default_model_env:v1
 class OllamaLLMProvider:
-    def __init__(self, model_name: str = "llama3.1:8b"):
-        self.model_name = model_name
+    def __init__(self, model_name: str | None = None):
+        self.model_name = model_name or os.getenv("OLLAMA_MODEL", "llama3.2:3b")
         self.base_url = "http://localhost:11434"
     
     def get_available_models(self) -> List[str]:
@@ -62,18 +63,23 @@ class OllamaLLMProvider:
             "model": self.model_name,
             "prompt": prompt,
             "stream": True,
+            # llm_service:num_ctx_vs_predict:v1
             "options": {
                 "temperature": 0.7,
-                "num_ctx": max_tokens
-            }
+                "num_ctx": 4096,
+                "num_predict": max_tokens,
+            },
         }
+        # llm_service:robust_errors:v1
+        # (connect timeout, read timeout) — a cold GPU should fail in ~2 min
+        # with a clear message rather than hanging for 5.
         try:
             response = requests.post(
                 f"{self.base_url}/api/generate",
                 headers=headers,
                 json=data,
                 stream=True,
-                timeout=300
+                timeout=(15, 120),
             )
             response.raise_for_status()
             full_text = ""
@@ -83,10 +89,29 @@ class OllamaLLMProvider:
                     if partial != "[DONE]":
                         chunk = json.loads(partial)
                         full_text += chunk.get("response", "")
-            return self._clean_response(full_text)
+            cleaned = self._clean_response(full_text)
+            if not cleaned.strip():
+                raise RuntimeError(
+                    f"The language model ({self.model_name}) returned an empty "
+                    "response. Try again in a moment."
+                )
+            return cleaned
+        except requests.exceptions.Timeout:
+            logging.error("Ollama request timed out")
+            raise RuntimeError(
+                f"The language model ({self.model_name}) timed out. It may be "
+                "cold-loading into memory or the GPU is busy — try again shortly."
+            )
+        except requests.exceptions.ConnectionError:
+            logging.error("Ollama unreachable")
+            raise RuntimeError(
+                "Could not reach the local LLM service (Ollama). It may be down."
+            )
+        except RuntimeError:
+            raise
         except Exception as e:
             logging.error(f"Error calling Ollama: {e}")
-            return ""
+            raise RuntimeError(f"LLM request failed: {e}")
 
     def _clean_response(self, text: str) -> str:
         text = re.sub(r"<[^>]+>", "", text)

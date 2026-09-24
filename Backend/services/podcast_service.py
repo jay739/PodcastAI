@@ -128,11 +128,6 @@ class PodcastService:
             "transcript": transcript_text,
             "output_path": output_path
         }
-
-
-podcast_service = PodcastService()
-
-class PodcastService:
     def generate_transcript(self, fileID: str, config: Dict) -> Dict:
         """Generate a podcast transcript (markdown) for the given PDF and config, without audio."""
         pdf_path = os.path.join('uploads', f"{fileID}.pdf")
@@ -169,7 +164,11 @@ class PodcastService:
         # Pass target language to generator if specified
         generator.language = config.get("language", "en")
         # Generate transcript markdown
-        transcript_md = generator.generate_transcript(speakers_config)
+        # podcast_service:transcript_unpack:v1
+        _ret = generator.generate_transcript(speakers_config)
+        # UnifiedPodcastGenerator returns (full_transcript_str, transcript_path)
+        # in v1.2; older revs returned just the string. Handle both.
+        transcript_md = _ret[0] if isinstance(_ret, tuple) else _ret
         transcript_path = os.path.join('outputs', f"{fileID}_transcript.md")
         full_transcript = f"# {generator.podcast_title} - Episode {generator.episode_number}: {generator.episode_subtitle}\n\n{transcript_md}"
         # Save transcript to file
@@ -180,3 +179,7 @@ class PodcastService:
             "transcript_path": transcript_path,
             "speakers_config": speakers_config
         }
+
+
+# podcast_service:merged-classes:v1
+podcast_service = PodcastService()

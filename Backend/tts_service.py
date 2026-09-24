@@ -6,20 +6,30 @@ from datetime import datetime
 from pydub import AudioSegment
 
 from services.transcript_utils import parse_transcript
-from services.tts_bark import BarkTTSGenerator
-from services.tts_coqui import CoquiXTTSGenerator
-from services.tts_kokoro import KokoroTTSGenerator
+# tts_service:lazy-import:v1
+# TTS backends are imported lazily inside get_tts_generator() so that
+# a broken import in one backend (e.g. Modal-Bark) does not prevent the others
+# from being usable.
 
 # ----------------------------
 # 🔁 Dispatcher
 # ----------------------------
+# tts_service:piper+kokoro-real:v1
 def get_tts_generator(model: str):
+    if model == "piper":
+        from services.tts_piper import PiperTTSGenerator
+        return PiperTTSGenerator()
+    if model == "kokoro-real":
+        from services.tts_kokoro_real import KokoroRealTTSGenerator
+        return KokoroRealTTSGenerator()
     if model == "xtts":
+        from services.tts_coqui import CoquiXTTSGenerator
         return CoquiXTTSGenerator()
-    elif model == "kokoro":
+    if model == "kokoro":  # legacy slot: broken MARS5 path, kept for back-compat
+        from services.tts_kokoro import KokoroTTSGenerator
         return KokoroTTSGenerator()
-    else:
-        return BarkTTSGenerator()  # default
+    from services.tts_bark import BarkTTSGenerator
+    return BarkTTSGenerator()  # default
 
 # For preview route
 def preview_voice(text: str, voice_type: str = "neutral", speaker_name: str = "preview", tts_model: str = "bark") -> AudioSegment:
