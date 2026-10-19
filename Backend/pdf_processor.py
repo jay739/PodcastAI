@@ -6,12 +6,16 @@ from pypdf import PdfReader
 import pymupdf
 
 def extract_text(pdf_path: str) -> Tuple[str, Dict]:
+    # Open outside the try: if opening fails there is no document to close,
+    # and the original error should surface instead of an UnboundLocalError.
+    doc = pymupdf.open(pdf_path)
     try:
-        doc = pymupdf.open(pdf_path)
         text = "\n".join(page.get_text() for page in doc)
+        # PyMuPDF reports missing metadata as "", so fall back on falsy values.
+        meta = doc.metadata or {}
         metadata = {
-            "title": doc.metadata.get("title", os.path.basename(pdf_path)),
-            "author": doc.metadata.get("author", "Unknown"),
+            "title": meta.get("title") or os.path.basename(pdf_path),
+            "author": meta.get("author") or "Unknown",
             "page_count": len(doc),
             "file_size": os.path.getsize(pdf_path)
         }
@@ -26,18 +30,29 @@ def clean_text(text: str) -> str:
     text = re.sub(r'\s+', ' ', text)  
     return text.strip()
 
+def _tail_overlap(sentences: List[str], overlap: int) -> List[str]:
+    """The trailing sentences whose combined length fits within overlap chars."""
+    tail, length = [], 0
+    for sentence in reversed(sentences):
+        if length + len(sentence) > overlap:
+            break
+        tail.insert(0, sentence)
+        length += len(sentence)
+    return tail
+
 def chunk_text(text: str, chunk_size=1500, overlap=200) -> List[str]:
-    """Improved chunking with sentence awareness"""
-    sentences = re.split(r'(?<=[.!?])\s+', text)
+    """Sentence-aware chunking. Each chunk starts with up to `overlap`
+    characters of trailing sentences from the previous chunk."""
+    sentences = [s for s in re.split(r'(?<=[.!?])\s+', text) if s]
     chunks = []
     current_chunk = []
     current_length = 0
-    
+
     for sentence in sentences:
         sentence_length = len(sentence)
         if current_length + sentence_length > chunk_size and current_chunk:
             chunks.append(' '.join(current_chunk))
-            current_chunk = current_chunk[-overlap//20:] 
+            current_chunk = _tail_overlap(current_chunk, overlap)
             current_length = sum(len(s) for s in current_chunk)
         current_chunk.append(sentence)
         current_length += sentence_length
