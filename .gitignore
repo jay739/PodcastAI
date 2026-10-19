@@ -21,3 +21,5 @@ CLAUDE.md
 
 # Generated dependency catalog (via /packages skill); kept local, not pushed
 docs/PACKAGES.md
+__pycache__/
+.pytest_cache/
