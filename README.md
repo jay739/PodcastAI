@@ -1,5 +1,9 @@
 # AI-Podcasting System
 
+<p align="center">
+  <img src="docs/logo.svg" alt="PodcastAI logo" width="128" />
+</p>
+
 ## Research Question
 **How can we use state-of-the-art large language models (LLMs) and advanced natural language processing (NLP) techniques to develop an AI-Podcasting system that improves user experience of content consumption?**
 

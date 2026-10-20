@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect x="0" y="0" width="512" height="512" rx="123" ry="123" fill="#0B0D10"/>
+  <g id="icon">
+    <!-- microphone capsule -->
+    <rect x="206" y="86" width="100" height="176" rx="50" fill="#FB923C"/>
+    <rect x="226" y="112" width="18" height="70" rx="9" fill="#F2F0EA"/>
+    <!-- holder arc and stem -->
+    <path d="M 160 206 A 96 96 0 0 0 352 206" fill="none" stroke="#FB923C" stroke-width="28" stroke-linecap="round"/>
+    <rect x="242" y="300" width="28" height="40" fill="#FB923C"/>
+    <!-- open book the voice comes from -->
+    <path d="M 100 352 L 246 372 L 246 424 L 100 404 Z" fill="#FB923C" stroke="#FB923C" stroke-width="12" stroke-linejoin="round"/>
+    <path d="M 412 352 L 266 372 L 266 424 L 412 404 Z" fill="#FB923C" stroke="#FB923C" stroke-width="12" stroke-linejoin="round"/>
+  </g>
+</svg>
