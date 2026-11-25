@@ -1,0 +1,83 @@
+# Working, fully pinned dependency set for the web backend.
+# Verified on Apple Silicon, macOS 27.3, Python 3.12.13, 2026-11-24.
+#
+# Install with:
+#   python3.12 -m venv .venv && .venv/bin/pip install -r requirements-macos.txt
+#
+# Why this file exists instead of Backend/requirements.txt
+# -------------------------------------------------------
+# Those pins are from 2021 to 2023 and no longer resolve or load here.
+# torch==2.1.2 has no wheels past Python 3.11, pandas==1.5.3 predates 3.12, and
+# the old scipy wheel fails to dlopen on this macOS with "section
+# '__DATA/__thread_bss' has a zero-fill section type", which crash-looped the
+# service until the venv was rebuilt.
+#
+# Everything here is pinned to an exact version on purpose. Unpinned torch and
+# transformers are what broke the previous fresh install: they resolve to
+# whatever is newest and drag incompatible numpy and scipy along with them.
+# Re-pin deliberately after testing, do not loosen these to ranges.
+#
+# requirements.txt also omits ten modules the code actually imports. Four are
+# module-level in the startup chain and unavoidable: textstat, nltk and spacy
+# (pdf_processor.py) and openai (llm_service.py:7 imports it and assigns
+# openai.api_key at module scope even though Ollama is the provider; nothing is
+# called and no key is set). bertopic and gensim are both needed because
+# pdf_processor.py:177 calls get_topic_model and a short PDF yields a single
+# chunk, which BERTopic cannot fit, so the gensim fallback is the normal path
+# for short documents.
+#
+# Deliberately NOT included: TTS (Coqui XTTS), bark, kokoro and modal.
+# tts_service.get_tts_generator imports each backend lazily and
+# PODCAST_WEB_TTS=piper, so none of them is loaded at runtime. They are heavy
+# and pin conflicting torch versions.
+
+# Web layer
+Flask==3.1.3
+flask-cors==6.0.5
+Werkzeug==3.1.9
+
+# PDF handling
+pypdf==6.21.4
+pymupdf==1.28.2
+
+# Audio. pydub shells out to ffmpeg, which must be on PATH.
+pydub==0.25.1
+soundfile==0.14.0
+
+# Data
+pandas==2.3.3
+numpy==2.5.5
+scipy==1.18.1
+
+# Retrieval. Imported at startup via podcast_service -> vector_db.
+torch==2.15.0
+transformers==5.24.1
+accelerate==1.16.0
+sentence-transformers==6.3.0
+faiss-cpu==1.16.0
+
+# TTS. tts_piper does "from piper import PiperVoice"; 1.x yields AudioChunk.
+piper-tts==1.8.0
+onnxruntime==1.32.0
+
+# Text analysis, all module-level imports in pdf_processor.py and eda_metrics.py.
+# nltk downloads vader_lexicon on first import. The spacy en_core_web_sm model is
+# optional: pdf_processor guards spacy.load and falls back to a regex, but entity
+# extraction is visibly worse without it, so install it with
+#   .venv/bin/python -m spacy download en_core_web_sm
+textstat==0.7.13
+nltk==3.10.4
+spacy==3.8.18
+
+# Topic modelling. bertopic is the primary path, gensim the fallback for
+# documents too short for BERTopic to fit.
+bertopic==0.17.4
+gensim==4.4.0
+
+# Imported unconditionally by llm_service even though Ollama is the provider.
+openai==3.59.0
+
+# Misc
+requests==2.34.2
+python-dotenv==1.2.4
+duckdb==2.0.1

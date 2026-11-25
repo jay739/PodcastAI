@@ -174,7 +174,15 @@ def analyze_pdf(pdf_path: Optional[str]) -> Dict:
     chunks = chunk_text(full_text)
     word_freq = generate_word_frequencies(full_text, top_n=50)
     chunk_sentiments = analyze_sentiment_by_chunk(chunks)
-    topics = get_topic_model(chunks)
+    # Topic modelling only feeds the analysis display, so a failure here must
+    # not take down a generation job someone is waiting on. BERTopic cannot fit
+    # a single chunk and the gensim fallback has its own import requirements, so
+    # this is a reachable path on short PDFs rather than a theoretical one.
+    try:
+        topics = get_topic_model(chunks)
+    except Exception as exc:
+        logging.warning("Topic modelling failed, continuing without topics: %s", exc)
+        topics = {}
     print("🔎 Keywords extracted:", keywords)
     print("📊 Counts:", keyword_counts)
 

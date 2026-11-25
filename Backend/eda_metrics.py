@@ -39,5 +39,6 @@ def fallback_lda_topics(chunks, n_topics=5):
     topics = lda.show_topics(num_topics=n_topics, formatted=False)
     simplified = {}
     for idx, topic in topics:
-        simplified[idx] = [{"word": w, "weight": float(wt)} for wt, w in topic]
+        # gensim show_topics(formatted=False) yields (word, weight) pairs.
+        simplified[idx] = [{"word": w, "weight": float(wt)} for w, wt in topic]
     return simplified
